@@ -1,0 +1,247 @@
+# Decisions
+
+Eight defects were found in `dossier-clair-project-specs` by adversarial binary review
+(14/22 criteria passed). The specs are unusually disciplined — the security, authorization,
+evidence and edge-case design is genuinely strong and is adopted wholesale. These are the
+eight places where the plan **departs from** or **resolves** the specs.
+
+Each decision is dated, has a stated rationale, and can be superseded by a later ADR.
+
+---
+
+## ADR-001 — The UI foundation ships in Phase 0, not as polish
+
+**Status:** accepted · 2026-09-18
+**Defect:** `correct-order`
+
+`17-PL01-ux.md:5` sizes the accessible French experience as *"Polish; L. Depends on
+CR01/CR03/CR06."* Those three modules specify 9, 6 and 10 screens respectively. The module
+that defines density, error placement, focus behaviour, required-field marking and the
+disclosure model is scheduled **after** 25 screens that need all of it.
+
+The specs defend this with *"Basic accessibility/responsiveness is required from
+foundation"* — but no foundation-level UI contract exists anywhere in the 25 files. It is a
+pointer to nothing.
+
+**Decision.** Extract a foundation UI contract into Phase 0 (items 0.5 and 0.6): tokens,
+type scale, spacing, elevation, density model, form and error patterns, the state matrix,
+and a **review-state component** covering `draft / submitted / approved / rejected /
+changes_requested / stale` plus the seven external states — which can co-occur on one row
+and have no component anywhere in the specs. PL01 retains only saved views, preferences and
+offline draft sync (Phase 5.1).
+
+**Consequence.** Phase 0 is larger. Every subsequent screen is faster and consistent by
+construction rather than by retrofit.
+
+---
+
+## ADR-002 — Approval policy is a configured mode, and solo mode cannot reach production
+
+**Status:** accepted · 2026-09-18
+**Defect:** raised in review; no criterion covered it
+
+`00-shared-contract.md` requires that a submitter cannot approve their own controlled
+action, across ~6 reviewer capabilities: `finance_operator` drafts an invoice and
+`finance_reviewer` issues it; `red_operator` proposes and `red_reviewer` posts; privileged
+grant changes need *"a different authorized `access_admin`"*.
+
+Two problems. One person cannot develop against this. And at a six-person Moroccan
+*transitaire* — the stated target customer — one person genuinely holds three of those
+roles, so **as specified, v1 cannot issue an invoice at a firm with one accountant.** The
+specs anticipate combined bundles but the block still fires, and the escape hatch is
+deferred: *"An alternative policy is assumption to verify and is not implemented as an ad
+hoc override."*
+
+**Decision.** Make the approval policy an explicit, versioned, named mode in the policy
+register rather than a hard-coded rule:
+
+| Mode | Behaviour | Where allowed |
+|---|---|---|
+| `independent_reviewer` | Spec default. Submitter ≠ approver, enforced per action family. | Any environment. The production default. |
+| `dev_single_approver` | Submitter may approve. Every such approval is stamped `self_approved: true` in `ApprovalDecision` and surfaced in the audit export. | Local + CI **only**. Startup readiness check fails if set in production. |
+| `small_org_documented` | Submitter may approve a named subset of action families, requiring a recorded reason and producing a flagged decision. Subset and eligibility are an approved policy value. | Production **only** once a named approver has approved the policy version. Not implemented until a real customer needs it. |
+
+**Consequence.** Development is unblocked immediately. The production question stays
+visible as a policy key rather than being silently solved by a developer. `self_approved`
+is queryable, so nobody can later claim the separation held when it did not.
+
+---
+
+## ADR-003 — `Quantity` is used in the ledger, not decomposed
+
+**Status:** accepted · 2026-09-18
+**Defect:** `types-consistent`
+
+The shared dictionary defines `Quantity | {value: Decimal, unit_id: Unit.id}`. Three
+entities then split it into loose sibling fields:
+
+- `07-CR04-red.md:30` — `RedLedgerEntry | …,delta_quantity:Decimal,unit_id,…`
+- `07-CR04-red.md:31` — `CoveragePosting | …,delta_output_quantity:Decimal,unit_id,…`
+- `13-DF03-production.md:23` — `MaterialVariance | …,unit_id,expected_consumption?:Decimal,
+  observed_consumption?:Decimal,linked_customs_consumption?:Decimal,variance?:Decimal` —
+  **four Decimals sharing one loose `unit_id`**
+
+These are immutable customs ledger rows. A unit mismatch here is exactly what the
+`Quantity` type exists to prevent, and it becomes unauditable after posting.
+
+**Decision.** Use `Quantity` in all three. Where the physical layout genuinely benefits
+from separate columns (the ledger, for index and aggregation reasons), keep the columns but
+(a) expose `Quantity` at every service and API boundary, and (b) add a CHECK constraint
+that `unit_id` matches the referenced `ImportLot`'s unit. `MaterialVariance` gets one
+`unit_id` per measured dimension, not one shared across four unrelated measures.
+
+---
+
+## ADR-004 — Terrain gets a first-party session refresh
+
+**Status:** accepted · 2026-09-18
+**Defect:** `no-hacky-shortcuts`
+
+`01-FD01-identity.md` specifies *"Provider-hosted branded French forms"* at `/connexion`
+with Google/Microsoft brokering, and Keycloak owning recovery. `17-PL01-ux.md` then
+requires *"Sync requires fresh authenticated session"*.
+
+A Keycloak-hosted login page is a cross-origin document load. The field-agent surface is
+used at a port, on a dropped connection, by someone whose session has just expired — which
+is precisely when a cross-origin redirect cannot load. The specs never acknowledge the
+collision.
+
+**Decision.**
+1. Keycloak remains the credential authority. No custom password storage. Unchanged.
+2. The API holds refresh tokens server-side and exposes a **same-origin** refresh endpoint.
+   A field agent with a valid application session never needs a cross-origin document load
+   to keep working.
+3. Application session lifetime for the field surface is a separate policy key from the
+   staff surface, and is deliberately longer.
+4. When the session cannot be refreshed offline, the UI states it plainly:
+   `Session expirée — reconnexion nécessaire dès le retour du réseau.` Queued drafts are
+   **retained**, never silently discarded, and never synced under an unauthenticated session.
+5. No offline capture claims to be verified. A queued field observation is evidence
+   awaiting review, exactly as the specs require.
+
+---
+
+## ADR-005 — The 99 assumptions split into two lists
+
+**Status:** accepted · 2026-09-18
+**Defect:** `no-placeholders`
+
+99 `assumption to verify` markers. The mechanism is honest and well built —
+`PolicyRequirement(key, scope_module, label_fr, schema, status, value?, …)` with
+`unresolved/proposed/approved/superseded` and defined fail-closed behaviour. But it mixes
+two very different kinds of unknown, and treating them alike blocks day-one work for no
+reason.
+
+**Decision.** Split the register on ownership:
+
+**List A — engineering-decidable now** (~12 items). Decide at bootstrap, record as an
+approved policy version with `source: engineering_default`, move on. Examples: list
+page-size default and maximum, job retry/backoff/lease durations, upload size limits,
+archive expansion limits, rate-limit values for synthetic testing, request timeouts,
+pagination cursor limits, search query limits.
+
+**List B — genuinely external** (~87 items). Needs a qualified regulatory reviewer, finance
+reviewer, commercial reviewer, security/privacy owner or service owner. Stays `unresolved`.
+Blocks activation of the affected capability, exactly as specified. Examples: supported
+regimes and document applicability, duties/tax/valuation, invoice numbering and tax rules,
+carrier free time and tier rates, BOM yields and permitted exception treatment, retention
+durations, CNDP transfer formalities, all NFR targets.
+
+**Consequence.** List B has the longest lead time in the whole project and nothing in
+Phase 3 activates without it. Start chasing it in week one, not when the code is ready.
+
+---
+
+## ADR-006 — The TransitOS design foundation carries over; its defects do not
+
+**Status:** accepted · 2026-09-18
+**Basis:** user decision, 2026-09-18
+
+The TransitOS Figma file scored 10/22 on the same review. But the failures were almost all
+*bookkeeping* — duplicate variable bindings, no components page, stale frames — not taste.
+The foundation underneath is good and was expensive to produce: a terracotta accent system,
+a properly named IBM Plex scale with line-heights and tracking, a three-tier elevation
+system, a status→tone contract, and a ~40-component vocabulary.
+
+**Decision.** Port the foundation into `packages/ui` in Phase 0. Rebuild all screens against
+the new information architecture. Fix on the way in — full detail in
+[03-DESIGN-FOUNDATION.md](03-DESIGN-FOUNDATION.md):
+
+- Every token single-valued. The source file had 17 duplicated names and 22 redundant
+  variables, and it shipped: `fond/application` rendered `#f0f0f3` on one screen and
+  `#fcfcfd` on thirteen others, and `statut/info` rendered terracotta on four screens and
+  azure on five.
+- `Champ` gets one boundary strategy: the **bordered** treatment at `gris/09` `#8B8D98`
+  (3.30:1 on white). The filled variant measured **1.22:1** and is dropped.
+- `icône/discrète` moves to `gris/10` `#80838D` — 3.78 on white, 3.33 on `gris/03`,
+  3.10 on `gris/04`. Clears 3:1 on every surface in the system; `gris/09` did not.
+- Required fields are marked on the label. The source design marked none, and carried a
+  hard validation rule in a prose side panel instead.
+- Light chrome is adopted deliberately and the old "dark chrome" rationale is retired. The
+  inverted surface `#1c2024` is retained for the primary action and for live-vs-frozen
+  projection panels, which is what that convention was actually protecting.
+
+---
+
+## ADR-007 — `info` is terracotta, separated from `accent` by step and shape
+
+**Status:** accepted · 2026-09-18
+**Basis:** user decision, 2026-09-18
+
+In the source file `statut/info-*` resolved two ways, and the terracotta resolution was
+**byte-identical** to the accent: `statut/info-encre #ad4318 == accent/texte #ad4318`, and
+`statut/info-fond #fbe8e0 == accent/fond #fbe8e0`. An info badge and an accent chip were
+the same pixels.
+
+Terracotta is chosen for `info`. Since the new system owns both tokens, the collision is
+resolved rather than inherited:
+
+| Role | Ink | Fill | Shape | Contrast |
+|---|---|---|---|---|
+| `statut/info` — a *state* | `terracotta/11` `#AD4318` | `terracotta/02` `#FDF4F0` | pill (`rayon/pilule`) | **5.39** ✓ |
+| `accent` chip — an *action or selection* | `base/blanc` `#FFFFFF` | `terracotta/11` `#AD4318` solid | tag (`rayon/xs`) | **5.84** ✓ |
+
+Tinted versus solid, plus pill versus tag. That is a much stronger separation than two
+tint steps, and it maps onto the real semantic difference: a status is something the record
+*is*, an accent chip is something you can *do*. Both pass AA with margin, and the info
+pairing improves on the original 4.93:1.
+
+> Rejected: `terracotta/10` `#C8501F` as chip ink on `terracotta/03` measures **3.83:1** —
+> below AA for text. It is an `aplats`-band step and must not carry text, exactly as the
+> source design system's own §2.3 warned.
+
+> Note the trade this closes. Spec 08 §2.5 warned that terracotta, ambre and rouge collapse
+> under protanopia. That analysis concluded the primary action must stay the **dark
+> neutral**, not the brand hue — and the source design did follow that rule
+> (`#1c2024`, 16.39:1). Keep it. With the primary action neutral, terracotta carries links,
+> selection, info and accent, and nothing load-bearing depends on telling it apart from
+> rouge by hue alone.
+
+---
+
+## ADR-008 — Full scope, with named stop-points
+
+**Status:** accepted · 2026-09-18
+**Basis:** user decision, 2026-09-18, after a recorded objection
+**Defect:** `no-overengineering`
+
+The objection, recorded so it is not relitigated: 114 routes, 16 roles, 5 shells, a
+deterministic RED ledger, an AI assistant and a 9-page marketing site — against a strategy
+document in which **every single target-client pain is labelled `assumption to verify`**
+and the evidence base is a competitor's public website. The stated differentiator is
+testable in about six screens.
+
+That objection was raised and overruled. Full scope is the plan.
+
+**Decision.** Build all 18 modules, sequenced so that **stopping early still leaves
+something coherent**:
+
+- **Stop-point 1** — end of Phase 2. A complete customs-broker product. RED omitted from
+  navigation and from every claim, as spec §19 explicitly permits.
+- **Stop-point 2** — end of Phase 3. Broker + RED operator, both segments served.
+- Phase 4 differentiators activate **individually**, each behind its own evidence and
+  provider gate. None of them is a prerequisite for shipping.
+
+**Consequence.** Full scope is delivered, and the two most likely failure modes — running
+out of runway, and being unable to secure a qualified RED reviewer — leave a working
+product rather than a half-built one.
