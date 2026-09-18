@@ -76,7 +76,7 @@ fond/inversé          gris/12   #1C2024    primary action, projection panels
 fond/terrain          gris-chaud/03 #ECE8E3
 fond/terrain-inversé  marine/11 #172542
 
-texte/fort            gris/12   #1C2024    15.98 on white
+texte/fort            gris/12   #1C2024    16.39 on white · 15.98 on gris/01
 texte/faible          gris/11   #60646C     5.94 on white
 texte/inversé         white     #FFFFFF
 icône/forte           gris/12   #1C2024
@@ -100,9 +100,15 @@ Ink on fill, pill shape, **always with a label**.
 | `danger` | `rouge/11` `#CF1E12` | `rouge/03` `#FFEFED` | 4.89 ✓ |
 | `attention` | `ambre/11` `#A66107` | `ambre/03` `#FFF7E0` | 4.53 ⚠️ |
 
-> ⚠️ `attention` clears AA by **0.03**. The source system flagged this and never fixed it.
-> Any future retune of `ambre` breaks it silently. Either accept it as documented fragility
-> or move the ink to `ambre/12`. Do not retune `ambre` without re-checking this row.
+> ⚠️ `attention` clears AA by **0.03**. The source system flagged this and never fixed it,
+> and any future retune of `ambre` breaks it silently.
+>
+> **Decision: accept 4.53 for now, with a guard.** The obvious remedy — a darker ink at
+> `ambre/12` — is not available: that step does not exist in the ramp above, and inventing
+> one would violate this document's own rule that a step is added when a use appears, not
+> speculatively. So: keep the pair, and add a **contrast unit test** in `packages/ui` that
+> asserts every status ink/fill pair ≥ 4.5. It fails the build if `ambre` is ever retuned.
+> That converts silent fragility into a loud one, which is the point.
 
 **Never colour alone.** Every badge carries text. This protects the CVD case: terracotta,
 ambre and rouge sit in adjacent hue space and converge under protanopia and deuteranopia.
@@ -113,9 +119,14 @@ important depends on distinguishing terracotta from rouge by hue. Terracotta car
 selection, info and accent chips.
 
 **Charts need their own palette.** Status tones are unsuitable for categorical encoding,
-and the circuit donut (vert / orange / rouge) is exactly the three that collapse. Direct
-labels and ordering carry the data; colour is secondary. A validated categorical sequence
-is still owed.
+and a three-segment vert/orange/rouge donut is exactly the three that collapse under
+protanopia. Direct labels and ordering carry the data; colour is secondary.
+
+A validated categorical sequence does not exist yet and is **Phase 0.5 deliverable (c)**:
+six colours, each adjacent pair ≥ 3:1 from its neighbours, checked under
+Viénot–Brettel–Mollon simulation for protanopia and deuteranopia, with a fixed order. It is
+needed before DF02 exposure reporting (4.3) and PL02 reports (5.2), and it is the one
+inherited colour defect this document does not close on its own.
 
 ---
 
@@ -215,8 +226,12 @@ KPI tile · meter · timeline · detail panel · inverted projection panel
 alert · banner · empty state
 
 **Forms** — field (label, required marker, hint, error, `because`) · input · select ·
-textarea · checkbox/radio · fieldset · dropzone · button (7 tones × 3 sizes × 5 states) ·
-bulk bar
+textarea · checkbox/radio · fieldset · dropzone · button · bulk bar
+
+> **Build the tones Phase 1 actually consumes, not the full matrix.** A 7 tones × 3 sizes ×
+> 5 states button is 105 permutations designed before a single real screen has said which
+> are used. Start with `primary` / `secondary` / `ghost` / `danger` at two sizes, and add a
+> tone when a screen needs it — the same rule this document applies to ramp steps.
 
 **Feedback** — toast/live region · skeleton/busy region · confirmation that can state
 consequences
@@ -229,6 +244,9 @@ Two of these do not exist in the source system and are load-bearing here:
 - **A confirmation that carries consequences.** Deleting an empty draft and deleting a
   dossier with an issued invoice and an engaged guarantee are not the same act. The
   confirmation has to be able to say so.
+
+The required marker is the literal string **`Obligatoire`**, per `17-PL01-ux.md:13` — not
+an asterisk, not a colour. Fix it once in the `field` primitive.
 
 Two field props from the source system are worth reproducing exactly: `conditional` (marks
 a field that only applies in the current state) and `because` (states *why* it just

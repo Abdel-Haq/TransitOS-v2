@@ -28,8 +28,7 @@ Planning. No code yet. Next step is Phase 0.1 — monorepo, CI and the Compose s
 
 ## Two things to know up front
 
-**Unknown business values are never invented.** 99 items across the specs are marked
-*assumption to verify* — tax rates, statutory deadlines, carrier free time, retention
+**Unknown business values are never invented.** 50 markers across the specs flag *assumption to verify* values — tax rates, statutory deadlines, carrier free time, retention
 durations, service targets. They live in a policy register, they block activation of the
 capability that needs them, and the UI says `À confirmer`. Code completion and production
 readiness are separate milestones.

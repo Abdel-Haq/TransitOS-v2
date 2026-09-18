@@ -1,13 +1,29 @@
 # Decisions
 
-Eight defects were found in `dossier-clair-project-specs` by adversarial binary review
-(14/22 criteria passed). The specs are unusually disciplined — the security, authorization,
-evidence and edge-case design is genuinely strong and is adopted wholesale. These are the
-eight places where the plan **departs from** or **resolves** the specs.
+Adversarial binary review of `dossier-clair-project-specs` passed 14 of 22 criteria. The
+specs are unusually disciplined — the security, authorization, evidence and edge-case design
+is genuinely strong and is adopted wholesale. These ADRs record every place where the plan
+**departs from** or **resolves** the specs.
+
+Which review finding each ADR answers:
+
+| Finding | Answered by |
+|---|---|
+| `correct-order` | ADR-001 |
+| separation of duty (no criterion covered it) | ADR-002 |
+| `types-consistent` | ADR-003 |
+| `no-hacky-shortcuts` | ADR-004 |
+| `no-placeholders` | ADR-005 |
+| `req-coverage` | ADR-006 |
+| `follows-patterns` | ADR-006, ADR-007 |
+| `no-overengineering` | ADR-008 |
+| `boundaries-respected` | ADR-009 |
 
 Each decision is dated, has a stated rationale, and can be superseded by a later ADR.
 
 ---
+
+<a id="adr-001"></a>
 
 ## ADR-001 — The UI foundation ships in Phase 0, not as polish
 
@@ -34,6 +50,8 @@ offline draft sync (Phase 5.1).
 construction rather than by retrofit.
 
 ---
+
+<a id="adr-002"></a>
 
 ## ADR-002 — Approval policy is a configured mode, and solo mode cannot reach production
 
@@ -67,6 +85,8 @@ is queryable, so nobody can later claim the separation held when it did not.
 
 ---
 
+<a id="adr-003"></a>
+
 ## ADR-003 — `Quantity` is used in the ledger, not decomposed
 
 **Status:** accepted · 2026-09-18
@@ -84,13 +104,23 @@ entities then split it into loose sibling fields:
 These are immutable customs ledger rows. A unit mismatch here is exactly what the
 `Quantity` type exists to prevent, and it becomes unauditable after posting.
 
-**Decision.** Use `Quantity` in all three. Where the physical layout genuinely benefits
-from separate columns (the ledger, for index and aggregation reasons), keep the columns but
-(a) expose `Quantity` at every service and API boundary, and (b) add a CHECK constraint
-that `unit_id` matches the referenced `ImportLot`'s unit. `MaterialVariance` gets one
-`unit_id` per measured dimension, not one shared across four unrelated measures.
+**Decision.** `Quantity` is the type at every service and API boundary, in all three cases —
+no exceptions, including `MaterialVariance`, whose four measures each become their own
+`Quantity` (`expected?`, `observed?`, `linked_customs?`, `variance?`). One shared `unit_id`
+across four unrelated measures is not a layout detail; it is the defect.
+
+Physically, `RedLedgerEntry` and `CoveragePosting` may keep `(delta_quantity, unit_id)` as
+separate columns for index and aggregation reasons, under two conditions: a CHECK constraint
+binds `unit_id` to the referenced `ImportLot`'s unit, and nothing outside the repository
+layer ever sees the decomposed form. This is a storage representation, not a type.
+
+> `CLAUDE.md` non-negotiable #3 states the rule in its absolute form — *never decompose* —
+> because that is the form every session should internalise. This ADR is the single
+> documented exception, and it is a physical-column exception only.
 
 ---
+
+<a id="adr-004"></a>
 
 ## ADR-004 — Terrain gets a first-party session refresh
 
@@ -121,12 +151,17 @@ collision.
 
 ---
 
-## ADR-005 — The 99 assumptions split into two lists
+<a id="adr-005"></a>
+
+## ADR-005 — The assumption register splits into two lists
 
 **Status:** accepted · 2026-09-18
 **Defect:** `no-placeholders`
 
-99 `assumption to verify` markers. The mechanism is honest and well built —
+**50 `assumption to verify` markers** across the 22 spec files, covering roughly 110
+enumerated values. (Counted 2026-09-18. An earlier figure of 99 in this plan was a
+double-count: `dossier-clair-implementation-specifications.md` is a consolidated copy of the
+split files and contributes 49 duplicates.) The mechanism is honest and well built —
 `PolicyRequirement(key, scope_module, label_fr, schema, status, value?, …)` with
 `unresolved/proposed/approved/superseded` and defined fail-closed behaviour. But it mixes
 two very different kinds of unknown, and treating them alike blocks day-one work for no
@@ -134,23 +169,29 @@ reason.
 
 **Decision.** Split the register on ownership:
 
-**List A — engineering-decidable now** (~12 items). Decide at bootstrap, record as an
+**List A — engineering-decidable now.** Decide at bootstrap, record as an
 approved policy version with `source: engineering_default`, move on. Examples: list
 page-size default and maximum, job retry/backoff/lease durations, upload size limits,
 archive expansion limits, rate-limit values for synthetic testing, request timeouts,
 pagination cursor limits, search query limits.
 
-**List B — genuinely external** (~87 items). Needs a qualified regulatory reviewer, finance
+**List B — genuinely external.** Needs a qualified regulatory reviewer, finance
 reviewer, commercial reviewer, security/privacy owner or service owner. Stays `unresolved`.
 Blocks activation of the affected capability, exactly as specified. Examples: supported
 regimes and document applicability, duties/tax/valuation, invoice numbering and tax rules,
 carrier free time and tier rates, BOM yields and permitted exception treatment, retention
 durations, CNDP transfer formalities, all NFR targets.
 
+The per-item classification is **not yet done** — it is Phase 0 deliverable 0.9, producing
+`docs/04-POLICY-REGISTER.md`. Until that exists, treat the A/B division as a method, not a
+finding, and do not quote a ratio.
+
 **Consequence.** List B has the longest lead time in the whole project and nothing in
 Phase 3 activates without it. Start chasing it in week one, not when the code is ready.
 
 ---
+
+<a id="adr-006"></a>
 
 ## ADR-006 — The TransitOS design foundation carries over; its defects do not
 
@@ -182,6 +223,8 @@ the new information architecture. Fix on the way in — full detail in
   projection panels, which is what that convention was actually protecting.
 
 ---
+
+<a id="adr-007"></a>
 
 ## ADR-007 — `info` is terracotta, separated from `accent` by step and shape
 
@@ -219,6 +262,8 @@ pairing improves on the original 4.93:1.
 
 ---
 
+<a id="adr-008"></a>
+
 ## ADR-008 — Full scope, with named stop-points
 
 **Status:** accepted · 2026-09-18
@@ -245,3 +290,39 @@ something coherent**:
 **Consequence.** Full scope is delivered, and the two most likely failure modes — running
 out of runway, and being unable to secure a qualified RED reviewer — leave a working
 product rather than a half-built one.
+
+---
+
+<a id="adr-009"></a>
+
+## ADR-009 — The Livewire architecture is retired, not bypassed
+
+**Status:** accepted · 2026-09-18
+**Defect:** `boundaries-respected`
+
+Review of the specs failed `boundaries-respected` on the grounds that they replace a
+documented architecture: `/home/user/cg/docs/ui-ux/02` §2 states *"Every interaction that
+changes data is a Livewire round-trip… there is no client-side store and no optimistic UI"*,
+and *"Field capture forms must stay native `<form method="POST">`"*. The specs mandate a
+separate REST API with `Idempotency-Key` and `If-Match` ETags consumed by a Next.js client —
+which does not extend that pattern, it replaces it.
+
+The plan inherited that defect without answering it. This ADR answers it.
+
+**Finding of fact.** The TransitOS repository contains `README.md` and `docs/ui-ux/` only —
+no `composer.json`, no `package.json`, no application code. The Livewire architecture was a
+**documented intention, never an implementation.** There is no dominant pattern to bypass
+because there is no code.
+
+**Decision.** Dossier Clair is a new product on the specified stack. Three non-negotiables
+from `09` §5 are Livewire-specific and are formally retired:
+
+| Retired | Why it no longer applies |
+|---|---|
+| #7 *"Server-rendered. Every data-changing interaction is a Livewire round-trip. No optimistic UI, no client-side store."* | Superseded by the REST contract. **The design consequence is kept**: pending states are still designed, because a round trip is still visible. |
+| #8 *"Field capture forms must stay native `<form method="POST">`."* | The offline mechanism is now the draft envelope of ADR-004. The underlying requirement — that capture works when JS is degraded and is never silently lost — is carried by ADR-004 §4. |
+| #12 *"No `@tailwindcss/forms`. Form chrome comes from the `@layer base` recipe."* | A Tailwind-specific gotcha. Form chrome now comes from `packages/ui`. |
+
+The other ten non-negotiables in `09` §5 are retained and are reflected in `CLAUDE.md` and
+`docs/03-DESIGN-FOUNDATION.md`. Retirement is deliberate and recorded; it is not silent
+drift.

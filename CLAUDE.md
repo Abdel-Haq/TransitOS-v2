@@ -22,7 +22,11 @@ Violating any of these breaks a stated invariant, not a preference.
    [ADR-002](docs/01-DECISIONS.md#adr-002) for the environment modes.
 3. **Exact arithmetic.** `Decimal` as a JSON string at the boundary, `NUMERIC` in Postgres.
    No floats, no scientific notation, ever, anywhere near money or quantities.
-   `Money = {amount, currency_code}`. `Quantity = {value, unit_id}`. Never decompose them.
+   `Money = {amount, currency_code}`. `Quantity = {value, unit_id}`. **Never decompose them
+   at a service or API boundary.** Physical ledger columns may store `(value, unit_id)`
+   separately for indexing, but only under a CHECK binding `unit_id` to the referenced lot,
+   and only inside the repository layer — see
+   [ADR-003](docs/01-DECISIONS.md#adr-003), the single documented exception.
 4. **Unknown is not zero, and not today.** A missing balance is `Solde non confirmé`. A
    missing timestamp is not `now()`. A missing calendar is not weekdays. A missing FX rate
    is not parity. Unknown blocks the action and says which policy key is missing.
@@ -147,6 +151,12 @@ a qualified reviewer should supply — a tax rate, a free-time period, a retenti
 a latency target — **do not invent it**. Add the policy key, return `POLICY_REQUIRED`, and
 show `À confirmer`. [ADR-005](docs/01-DECISIONS.md#adr-005) says which unknowns are
 engineering-decidable and which are not.
+
+Policy keys are namespaced `policy.<module>.<name>` — e.g. `policy.invoice.numbering` — so
+they never collide with the capability registry, which uses the bare `<noun>.<verb>` form
+(`privacy.export`, `license.manage`, `assistant.query`). Only the `nfr.*` family appears in
+the specs; every other key is coined by this project and becomes authoritative when the
+register is seeded in Phase 0.9.
 
 ## What is out of scope
 

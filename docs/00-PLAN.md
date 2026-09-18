@@ -10,8 +10,9 @@ developers. This document does not replace them. It does four things they do not
    CR01/CR03/CR06"* — after the modules that specify 25 screens between them. That is
    backwards, and it is the defect that will cost the most if left alone. See
    [ADR-001](01-DECISIONS.md#adr-001).
-2. **Resolves the eight defects** found in the specs by adversarial review, as decisions
-   rather than open questions. See [01-DECISIONS.md](01-DECISIONS.md).
+2. **Resolves the defects** found in the specs by adversarial review, as decisions rather
+   than open questions — with a table mapping each review finding to the ADR answering it.
+   See [01-DECISIONS.md](01-DECISIONS.md).
 3. **Adapts to solo.** The specs deliberately omit staffing — *"Dates, staffing, budget
    and pilot organization are assumption to verify and deliberately absent."* Solo changes
    the binding constraint, and the plan has to say so out loud (§1 below).
@@ -23,15 +24,17 @@ developers. This document does not replace them. It does four things they do not
 ## 1. The honest constraint
 
 The specs size every one of the 18 modules as **L**. Taken literally that is 18 large
-modules, 114 named UI routes, 16 roles and 5 shells, built by one person.
+modules, **~114** named UI routes (a pattern count over the screen inventories — treat as
+approximate), **16** roles (exactly, `00-shared-contract.md:66`) and 5 shells, built by one
+person.
 
 **Code volume is not the binding constraint.** With a contract-first setup, Claude Code
-can generate the bulk of 114 CRUD-and-review screens from typed DTOs. What does not scale
+can generate the bulk of those CRUD-and-review screens from typed DTOs. What does not scale
 is everything around it:
 
 | Constraint | Why solo strains it |
 |---|---|
-| **Policy resolution** | 99 `assumption to verify` markers. Most need a qualified regulatory reviewer, a finance reviewer or a privacy owner. A solo builder is none of those, and the specs correctly refuse to let code invent the values. |
+| **Policy resolution** | **50** `assumption to verify` markers covering ~110 enumerated values. Most need a qualified regulatory reviewer, a finance reviewer or a privacy owner. A solo builder is none of those, and the specs correctly refuse to let code invent the values. |
 | **Separation of duty** | The authorization model requires that a submitter cannot approve their own controlled action, across ~6 distinct reviewer capabilities. One person cannot satisfy it. [ADR-002](01-DECISIONS.md#adr-002) gives the engineering answer; it does not give a production answer. |
 | **Review capacity** | Generated code still has to be read. A module of this shape is ~15–25 files of domain logic plus migrations plus tests. Generation is fast; verification is not. |
 | **Domain correctness** | FIFO/LIFO allocation, BOM coverage, partial-period charge tiers and exact decimal arithmetic are not code-generatable from a description. They need fixtures written by someone who knows the right answer. |
@@ -87,7 +90,7 @@ sizing against each other, not calendar time.
 ### Phase 0 — Foundation kernel *(not in the specs; see ADR-001)*
 
 Nothing in Phases 1+ can be built correctly without this, and every hour spent here is
-repaid 114 times.
+repaid on every screen that follows.
 
 | # | Item | Size | Done when |
 |---|---|---|---|
@@ -95,9 +98,21 @@ repaid 114 times.
 | 0.2 | `packages/contracts` — shared value types (`Money`, `Quantity`, `Decimal`, `ResourceRef`, `EvidenceRef`, `SnapshotRef`, `TypedValue`), the French error catalog, the capability registry, the action registry | L | Every type from spec §20 is expressed and unit-tested; OpenAPI generates |
 | 0.3 | **Shared kernel schema** — `ResourceRecord`, `ReviewRequest`, `ApprovalDecision`, `AuditEvent`, `Job`, `OutboxEvent`, `IdempotencyRecord` | L | The controlled-command flow executes end to end on a synthetic resource: validate → authorize → `If-Match` → lock → recheck → apply → consume approval → audit + outbox → commit |
 | 0.4 | Authorization engine — capability + resource scope + classification + module availability, deny by default | L | Role/resource matrix tests pass, including revoked parent grants, restricted children and aggregate leakage |
-| 0.5 | **`packages/ui` — design system** carried from TransitOS with its defects fixed ([ADR-006](01-DECISIONS.md#adr-006), [03-DESIGN-FOUNDATION.md](03-DESIGN-FOUNDATION.md)) | L | Tokens, type scale, elevation, and the ~20 primitives the specs actually need; every token single-valued; contrast validated |
-| 0.6 | **UI application shell** — the five surfaces, navigation, the review-state component, French locale, accessibility primitives | L | A screen can be built from primitives in an hour, not a day |
+| 0.5 | **`packages/ui` — design system** carried from TransitOS with its defects fixed ([ADR-006](01-DECISIONS.md#adr-006), [03-DESIGN-FOUNDATION.md](03-DESIGN-FOUNDATION.md)). Three deliverables: **(a)** tokens, type scale, elevation — every token single-valued; **(b)** the primitives Phase 1–2 screens actually consume; **(c)** a validated categorical chart sequence | L | Contrast unit test asserts every status pair ≥ 4.5 and every boundary ≥ 3.0, and fails the build; (c) checked under protanopia/deuteranopia simulation |
+| 0.6 | **Staff application shell only** — navigation, the review-state component, French locale, accessibility primitives | M | A staff screen can be built from primitives in an hour, not a day |
 | 0.7 | Approval policy modes ([ADR-002](01-DECISIONS.md#adr-002)) | S | `dev_single_approver` works locally and **fails the production readiness check** |
+| 0.8 | **Minimal typed rule registry** — `RuleDefinition`, `RuleVersion`, the three-valued predicate evaluator, `PolicyRequirement`, and the `POLICY_REQUIRED` → `À confirmer` path | M | A seed policy can be entered, reviewed, activated and consumed by a calculation; an unresolved key blocks that calculation and names itself |
+| 0.9 | **Policy register** — classify all ~110 enumerated unknowns into List A / List B ([ADR-005](01-DECISIONS.md#adr-005)) | S | `docs/04-POLICY-REGISTER.md` exists with an owner per item; List A values are recorded as approved with `source: engineering_default` |
+
+> **The other four shells are not built here.** Field ships with CR03 (3.x), client portal
+> with CR06 (2.4), auth with FD01 (1.1), and the public site with PL02 (5.2). Phase 0 builds
+> chrome only for surfaces that a Phase 1–2 screen actually renders.
+
+> **0.8 is load-bearing and easy to miss.** `04-CR01-dossiers.md:5` says CR01 *"uses a
+> minimal approved workflow/rule registry"*; `19-…:111` and `:114` make CR01 and CR04 depend
+> on it; `14-DF04-rules.md:5` says *"a minimal registry exists before those core modules"*.
+> DF04 (4.1) grows this registry — it does not introduce it. Without 0.8, CR01 at 2.1 hits
+> exactly the wall ADR-001 was written to avoid, one phase later.
 
 **Exit:** a synthetic resource can be drafted, submitted, independently approved, posted,
 audited and reversed — through real screens, with real authorization, on real Postgres.
@@ -122,13 +137,21 @@ exist. Build them as one slice, not two.
 
 The first point at which the product is worth showing anyone.
 
-| # | Module | Size | Notes |
-|---|---|---|---|
-| 2.1 | **CR01** Dossiers, requirements, blockers, declarations, work queue | L | The differentiator lives here. `/travail` and `/dossiers/{id}` are the two screens that decide whether this product is usable |
-| 2.2 | **CR02** Costs, invoices, receipts, allocations | L | Blocked on approved numbering/tax/rounding policy before *issue* — drafting works without it |
-| 2.3 | **CR03** Orders, missions, assets, return closure | L | Use a PostgreSQL exclusion constraint for assignment overlap, as the spec suggests |
-| 2.4 | **CR06** Client requests, responses, notifications | L | Separate DTO allowlists for client routes — never staff object serialization |
-| 2.5 | **CR07** File exchange and reconciliation *(broker scope)* | M | Adapter registry + synthetic fixture format only. No claimed official connection |
+| # | Module | Size | Exit evidence (spec §19) | Tests |
+|---|---|---|---|---|
+| 2.1 | **CR01** Dossiers, requirements, blockers, declarations, work queue | L | Draft-to-close broker scenario with stale evidence and official status separation | `04-CR01-dossiers.md` *Tests:* line |
+| 2.2 | **CR02** Costs, invoices, receipts, allocations | L | Issue/correct/reconcile scenario with concurrent allocation and exact totals | `05-CR02-finance.md` *Test* line |
+| 2.3 | **CR03** Orders, missions, assets, return closure | L | Partial delivery and separate empty-return closure; conflicting assignment denied | `06-CR03-transport.md` *Test* line |
+| 2.4 | **CR06** Client requests, responses, notifications *(+ portal shell)* | L | Client sees only shared data and exact request version; revoked grants take effect | `09-CR06-client-portal.md` *Tests:* line |
+| 2.5 | **CR07** File exchange and reconciliation *(broker scope)* | M | Duplicates/out-of-order files handled without repeated effect or false external acceptance | `10-CR07-reconciliation.md` *Acceptance:* line |
+
+Notes: 2.1 is where the differentiator lives — `/travail` and `/dossiers/{id}` decide whether
+this product is usable. 2.2 blocks on approved numbering/tax/rounding policy before *issue*;
+drafting works without it. 2.3 uses a PostgreSQL exclusion constraint (`btree_gist` required
+for the UUID equality operator) **in addition to** the row locking the spec mandates, not
+instead of it. 2.4 needs separate DTO allowlists for client routes — never staff object
+serialization. 2.5 is adapter registry plus synthetic fixture format only; no claimed
+official connection.
 
 **Exit = broker pilot.** Spec §19: *"Broker pilot requires CR01–CR03, CR06 and relevant
 CR07 workflows plus operational gates."* RED capability is omitted from navigation and
@@ -139,10 +162,14 @@ it here and the result is still a coherent thing to sell.
 
 ### Phase 3 — RED core *(specs: CR04, CR05)*
 
-| # | Module | Size | Notes |
-|---|---|---|---|
-| 3.1 | **CR04** Projects, lots, BOM, deterministic allocation, reversals | L | The hardest module in the product. Deterministic FIFO/LIFO with documented tie-breaks; all-or-nothing BOM coverage; exact reversal |
-| 3.2 | **CR05** Obligations, deadlines, guarantees, release evidence | L | Local clearance must never release a bank guarantee by implication |
+| # | Module | Size | Exit evidence (spec §19) | Tests |
+|---|---|---|---|---|
+| 3.1 | **CR04** Projects, lots, BOM, deterministic allocation, reversals *(+ field shell)* | L | Concurrent allocations cannot overspend; reverse/repost preserves trace | `07-CR04-red.md` *Tests use synthetic reviewed rules* line |
+| 3.2 | **CR05** Obligations, deadlines, guarantees, release evidence | L | Local fulfillment does not release bank guarantee; verified extension updates due basis | `08-CR05-obligations.md` *Tests:* line |
+
+Notes: 3.1 is the hardest module in the product — deterministic FIFO/LIFO with documented
+tie-breaks, all-or-nothing BOM coverage, exact reversal. 3.2: local clearance must never
+release a bank guarantee by implication.
 
 ⚠️ **Highest solo risk.** Not the code — the *correctness oracle*. Eligibility predicates,
 permitted dispositions, conversion precision and aggregation basis are all
@@ -156,25 +183,23 @@ production activation is blocked.
 
 Each activates individually, only after its own evidence and provider policy are approved.
 
-| # | Module | Size | Gate |
-|---|---|---|---|
-| 4.1 | **DF04** Rule registry, qualification, impact scanning | L | Build early — Phases 2–3 already consume a minimal registry. This grows it, it does not replace it |
-| 4.2 | **DF01** Reviewed extraction, contradictions, mail routing | L | Approved AI provider, region, purpose and data categories |
-| 4.3 | **DF02** Contract-aware delay exposure and scenarios | L | Needs real carrier/terminal contract evidence from a customer |
-| 4.4 | **DF06** Adapters and scoped machine API | L | Every claimed live adapter needs contract evidence and passing tests |
-| 4.5 | **DF03** Production evidence and RED reconciliation | L | Depends on CR04 + CR07 |
-| 4.6 | **DF05** Grounded assistant, scans, recommendations | L | Last by dependency — needs CR04, CR05, DF01, DF03, DF04 |
+| # | Module | Size | Exit evidence (spec §19) | Gate |
+|---|---|---|---|---|
+| 4.1 | **DF04** Rule lifecycle, qualification, impact scanning | L | New rule identifies affected records without rewriting posted history | Grows the **0.8** registry; does not introduce it |
+| 4.2 | **DF01** Reviewed extraction, contradictions, mail routing | L | Proposed fields cite source; correction never overwrites approved data silently | Approved AI provider, region, purpose, data categories |
+| 4.3 | **DF02** Contract-aware delay exposure and scenarios | L | Same complete inputs reproduce estimate; incomplete rates stay unavailable | Real carrier/terminal contract evidence from a customer |
+| 4.4 | **DF06** Adapters and scoped machine API | L | Contract fixture and replay tests pass; unverified provider stays disabled | Every claimed live adapter needs contract evidence |
+| 4.5 | **DF03** Production evidence and RED reconciliation | L | Material variance links to actual movements and reviewed RED correction | Depends on CR04 + CR07 |
+| 4.6 | **DF05** Grounded assistant, scans, recommendations | L | Every factual recommendation is grounded or marked unknown; no executing model output | Last by dependency — CR04, CR05, DF01, DF03, DF04 |
 
-DF04 moves to the front of this phase because the minimal rule registry is already load
-bearing by the end of Phase 2. The specs acknowledge this (*"early registry already in
-use"*) but sequence the module late; bringing it forward avoids a migration.
+Each module's spec file carries its own `Tests:` line; open it alongside the ledger row.
 
 ### Phase 5 — Operations and launch *(specs: PL01 remainder, PL02)*
 
-| # | Item | Size |
-|---|---|---|
-| 5.1 | **PL01 remainder** — saved views, preferences, controlled offline draft sync | M |
-| 5.2 | **PL02** — public site, reports, license/usage, runbooks, restore rehearsal | L |
+| # | Item | Size | Exit evidence (spec §19) | Tests |
+|---|---|---|---|---|
+| 5.1 | **PL01 remainder** — saved views, preferences, controlled offline draft sync | M | Keyboard, French-copy, interrupted field workflow and conflict tests pass | `17-PL01-ux.md` *Tests:* line |
+| 5.2 | **PL02** — public site *(+ public shell)*, reports, license/usage, runbooks, restore rehearsal | L | Isolated restore, release readiness and evidence-backed published capability list | `18-PL02-launch-operations.md` *Tests:* line |
 
 Most of PL01 was pulled into Phase 0. What remains here is genuinely polish: saved views,
 density preference, and the offline draft envelope — which depends on
@@ -232,6 +257,6 @@ being quietly replaced by a developer guess. That column is the one that keeps t
 2. Write `packages/contracts` value types and the error catalog (0.2) — before any table exists.
 3. Build the shared kernel and prove the controlled-command flow on a throwaway resource (0.3).
 4. Port the design system into `packages/ui` with the token defects fixed (0.5).
-5. Split the 99 assumptions into *engineering-decidable now* and *policy-blocked*
-   ([ADR-005](01-DECISIONS.md#adr-005)) and start chasing the second list immediately —
-   it has the longest lead time and nothing in Phase 3 can be activated without it.
+5. Classify the ~110 enumerated unknowns into List A and List B (item **0.9**) and start
+   chasing List B immediately — it has the longest lead time and nothing in Phase 3 can be
+   activated without it.
