@@ -18,9 +18,15 @@ AI assists that work; it is not the promise.
 | 4 | [`docs/03-DESIGN-FOUNDATION.md`](docs/03-DESIGN-FOUNDATION.md) | Tokens, type, components. |
 | 5 | [`docs/02-DELIVERY-LEDGER.md`](docs/02-DELIVERY-LEDGER.md) | Status per requirement, and the policy keys blocking release. |
 
-The functional specifications (`dossier-clair-project-specs`, 25 files) are the source of
-truth for **what** to build. This repository's docs cover **how** and **in what order**,
-and record the places where the specs are not followed as written.
+The functional specifications are vendored at [`specs/`](specs/) and are the source of truth
+for **what** to build. This repository's docs cover **how** and **in what order**, and record
+the places where the specs are not followed as written. Every `file.md:NN` citation in
+`docs/` resolves against `specs/`.
+
+> `specs/dossier-clair-implementation-specifications.md` is a **consolidated copy** of the 21
+> numbered files, not additional content. Never count or search both — it is what produced
+> the "99 assumptions" double-count corrected in [ADR-005](docs/01-DECISIONS.md#adr-005).
+> `specs/sources/` holds the two prompt documents the specs were generated from.
 
 ## Status
 
