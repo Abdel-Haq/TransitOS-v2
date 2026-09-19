@@ -11,6 +11,17 @@ export {
   containsSelfApproval,
   SMALL_ORG_SUBSET_POLICY_KEY,
 } from './approval/evaluate.js';
+export { decideAccess, directlyGrantedIds, hasBroadScope } from './access/decide.js';
+export type {
+  AccessDecision,
+  AccessRequest,
+  Ancestor,
+  DenialReason,
+  ResourceGrant,
+  RoleAssignment,
+  Subject,
+  TargetResource,
+} from './access/types.js';
 export type {
   ApprovalContext,
   ApprovalOutcome,

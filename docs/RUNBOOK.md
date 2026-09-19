@@ -286,3 +286,70 @@ run printed `no handler for "undefined"`. Running the thing found what the tests
 
 `PROVISIONAL_MAX_ATTEMPTS` in the worker is marked against `policy.jobs.max_attempts`†
 and is not an approved value. It becomes real when the policy register lands in 0.8.
+
+---
+
+## Authorization
+
+Phase 0.4. The decision is in `packages/domain/src/access` — pure, no HTTP, no SQL, no
+clock — and `db/src/kernel/access.ts` loads what it needs and builds list predicates.
+
+`00-shared-contract.md:64`: *"Effective access = active authenticated user + explicit
+capability + resource scope + data classification + current module availability. Deny by
+default."* Five terms, all required, evaluated in that order. Deny by default is
+structural: the function returns a denial unless a branch explicitly allows, and there is
+no fall-through.
+
+### The request no longer states its own capabilities
+
+`Principal` carries a user id and nothing else. Phase 0.3 had a capability list on the
+request; once the engine landed, that list was either ignored or trusted, and only one of
+those is safe. Roles and grants are loaded from the database on every command — same
+reasoning as non-negotiable #2.
+
+### 403 or 404 is not a style choice
+
+`403` names a capability the user holds nowhere, which discloses nothing about what
+exists. Everything else — out of scope, restricted without a grant, module disabled — is
+`404`, because a `403` would confirm the resource is there. `00-shared-contract.md:103`
+groups *"absent/inaccessible"* under 404 for exactly this reason.
+
+### Inheritance stops at the first wall
+
+`:84` — grants inherit *"to permitted child records only when `client_shareable=true`"*
+and *"`internal` records never inherit external access."* The walk stops at the first
+ancestor that is not shareable. A chain `dossier(shareable) → cost(internal) →
+attachment(shareable)` must not reach the attachment: the internal record in the middle is
+a wall, not a transparent link.
+
+`restricted` needs its own direct grant, and is not reachable by inheritance **or** by
+`all_operational_records`. Broad scope is the strongest thing a staff role holds, and
+restricted still beats it — otherwise a management report is the leak.
+
+### Access control goes in the WHERE, not after the SUM
+
+`:53` — *"All list predicates include access control before pagination/aggregation."*
+`accessiblePredicate` returns a SQL condition to compose into the `WHERE`. Paging first
+returns short pages; summing first returns a number the user was never entitled to, and
+the number is usually the thing they wanted.
+
+**With no grants and no assignments the predicate is `false`, not `TRUE`.** A predicate
+that degenerates to TRUE on an empty grant list is the single worst bug this file could
+contain, so the empty case is explicit and tested.
+
+### Nothing is cached
+
+`:84` — *"invalidate caches after revocation."* Three indexed reads per command. A cache
+here is a revocation that has not taken effect yet, which is the failure the spec names.
+When one eventually earns its place it must be keyed so a revocation can evict it.
+
+### 86 of 121 capabilities have no role
+
+The specs call roles *"fixed capability bundles"* and never enumerate them: role
+attribution lives in module prose. `ROLE_BUNDLE_ENTRIES` grounds what can be grounded —
+reviewer attributions from the action registry, plus the handful of module sentences that
+name a role and a capability together — and `UNASSIGNED_CAPABILITIES` lists the rest.
+
+They all deny by default, so the gap fails closed and is countable rather than papered
+over with a plausible bundle. Completing it is `policy.identity.role_bundles`†, supplied
+by the organization's access reviewer.

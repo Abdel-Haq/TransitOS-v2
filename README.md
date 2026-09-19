@@ -30,7 +30,7 @@ the places where the specs are not followed as written. Every `file.md:NN` citat
 
 ## Status
 
-Phases **0.1, 0.2, 0.7 and 0.3 are code_complete**. The monorepo, toolchain, CI and Compose stack
+Phases **0.1, 0.2, 0.7, 0.3 and 0.4 are code_complete**. The monorepo, toolchain, CI and Compose stack
 are in place; the startup configuration contract of `19-security-operations-delivery.md:63`
 is implemented and tested in `packages/config`; and `packages/contracts` now holds the
 value types, the French error catalog, and the capability, role and action registries,
@@ -40,10 +40,12 @@ decides whether a controlled action has every decision it needs. The shared kern
 place — `ResourceRecord`, `ReviewRequest`, `ApprovalDecision`, `AuditEvent`, `Job`,
 `OutboxEvent` and `IdempotencyRecord` — and the controlled-command flow runs end to end
 against real PostgreSQL, with the row lock, the single-use approval latch and the
-idempotency claim all proven under concurrency.
+idempotency claim all proven under concurrency. The authorization engine enforces all
+five terms of `00-shared-contract.md:64` — active user, capability, resource scope, data
+classification and module availability — deny by default.
 
 Build order for Phase 0 is **0.1 → 0.2 → 0.7 → 0.3 → 0.4 → 0.5(a) → 0.6 → 0.8**, with 0.9
-running in parallel from day one. Next is **0.4**, the authorization engine.
+running in parallel from day one. Next is **0.5(a)**, the design tokens.
 
 See [`docs/RUNBOOK.md`](docs/RUNBOOK.md) to run it.
 

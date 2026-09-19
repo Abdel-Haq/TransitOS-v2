@@ -92,6 +92,13 @@ export {
   type CapabilityDefinition,
 } from './registry/capabilities.js';
 export {
+  ROLE_BUNDLE_ENTRIES,
+  ROLE_BUNDLE_POLICY_KEY,
+  UNASSIGNED_CAPABILITIES,
+  capabilitiesOfRole,
+  roleGrants,
+} from './registry/role-bundles.js';
+export {
   ROLE_REGISTRY,
   ROLE_CODES,
   STAFF_ROLES,

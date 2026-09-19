@@ -13,6 +13,13 @@ import {
   reviewRequest,
 } from '../schema/kernel.js';
 import { kernelProbe } from '../schema/probe.js';
+import { ALL_MODULES } from '@dc/config';
+import {
+  userAccount,
+  roleAssignment,
+  resourceAssignment,
+  resourceGrant,
+} from '../schema/identity.js';
 import { executeCommand } from './execute.js';
 import { postProbeHandler, type PostProbeBody } from './probe-command.js';
 import { claimJobs, completeJob, enqueueJob, failJob } from './jobs.js';
@@ -27,11 +34,9 @@ afterAll(async () => {
 const ALICE = '11111111-1111-4111-8111-111111111111';
 const BOB = '22222222-2222-4222-8222-222222222222';
 
-const operator: Principal = {
-  user_id: ALICE,
-  capabilities: ['invoice.write', 'invoice.issue'],
-  roles: ['finance_operator'],
-};
+const operator: Principal = { user_id: ALICE };
+/** A real account with no role assignment — the server decides, not the request. */
+const NOBODY = '99999999-9999-4999-8999-999999999999';
 
 /** A probe resource plus its ResourceRecord, created in one transaction as 20-…:11 requires. */
 const seedProbe = async (amount = '100.00') => {
@@ -93,16 +98,43 @@ const request = (targetId: string, over: Partial<CommandRequest<PostProbeBody>> 
     ...over,
   }) satisfies CommandRequest<PostProbeBody>;
 
+const ENABLED = new Set(ALL_MODULES);
+const NOW = '2026-09-19T12:00:00Z';
+
 const run = (
   req: CommandRequest<PostProbeBody>,
   mode: 'independent_reviewer' | 'dev_single_approver' = 'independent_reviewer',
-) => db.transaction((tx) => executeCommand(tx, req, postProbeHandler, mode));
+) => db.transaction((tx) => executeCommand(tx, req, postProbeHandler, mode, ENABLED, NOW));
 
 beforeEach(async () => {
   await db.execute(sql`TRUNCATE ${auditEvent}, ${outboxEvent}, ${idempotencyRecord} CASCADE`);
   await db.execute(sql`TRUNCATE ${approvalDecision}, ${reviewRequest} CASCADE`);
   await db.execute(sql`TRUNCATE ${kernelProbe}, ${resourceRecord} CASCADE`);
   await db.execute(sql`TRUNCATE ${job} CASCADE`);
+  await db.execute(
+    sql`TRUNCATE ${resourceGrant}, ${resourceAssignment}, ${roleAssignment}, ${userAccount} CASCADE`,
+  );
+  // Alice operates, Bob reviews. Both need to exist and hold the capability now that the
+  // executor runs the real authorization engine rather than trusting the request.
+  await db.insert(userAccount).values([
+    { id: ALICE, subject: 'alice', displayName: 'Alice', audience: 'staff' },
+    { id: BOB, subject: 'bob', displayName: 'Bob', audience: 'staff' },
+    { id: NOBODY, subject: 'nobody', displayName: 'Nobody', audience: 'staff' },
+  ]);
+  await db.insert(roleAssignment).values([
+    {
+      userId: ALICE,
+      roleCode: 'finance_reviewer',
+      scope: 'all_operational_records',
+      createdBy: ALICE,
+    },
+    {
+      userId: BOB,
+      roleCode: 'finance_reviewer',
+      scope: 'all_operational_records',
+      createdBy: ALICE,
+    },
+  ]);
 });
 
 describe('the controlled-command flow, end to end', () => {
@@ -233,12 +265,12 @@ describe('approval binding', () => {
 });
 
 describe('authorization', () => {
-  it('refuses a principal without the capability', async () => {
+  it('refuses a principal whose account holds no role granting the capability', async () => {
+    // The request cannot nominate its own capabilities any more: the executor loads
+    // roles and grants from the database. This account exists and holds nothing.
     const id = await seedProbe();
     await seedApproval(id);
-    const outcome = await run(
-      request(id, { principal: { user_id: ALICE, capabilities: [], roles: ['auditor'] } }),
-    );
+    const outcome = await run(request(id, { principal: { user_id: NOBODY } }));
     expect(outcome.ok).toBe(false);
     if (outcome.ok) return;
     expect(outcome.code).toBe('FORBIDDEN');
@@ -305,6 +337,8 @@ describe('idempotency', () => {
           request(id, { idempotency: key }),
           postProbeHandler,
           'independent_reviewer',
+          ENABLED,
+          NOW,
         );
         throw new Error('simulated failure after the effect');
       })

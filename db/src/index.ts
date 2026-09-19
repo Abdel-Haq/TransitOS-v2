@@ -17,4 +17,10 @@ export {
   type ClaimedJob,
   type Principal,
 } from './kernel/index.js';
+export {
+  loadSubject,
+  loadAncestors,
+  accessiblePredicate,
+  liveGrantFilter,
+} from './kernel/index.js';
 export { postProbeHandler, type PostProbeBody, type PostProbeResult } from './kernel/index.js';

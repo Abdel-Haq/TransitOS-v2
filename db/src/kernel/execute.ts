@@ -8,8 +8,9 @@ import {
   type ErrorCode,
   type ResourceRef,
 } from '@dc/contracts';
-import { evaluateApproval, type RecordedDecision } from '@dc/domain';
-import type { ApprovalMode } from '@dc/config';
+import { decideAccess, evaluateApproval, type RecordedDecision } from '@dc/domain';
+import type { ApprovalMode, ModuleId } from '@dc/config';
+import { loadAncestors, loadSubject } from './access.js';
 import {
   approvalDecision,
   auditEvent,
@@ -71,6 +72,9 @@ export async function executeCommand<TBody, TInput, TResult>(
   request: CommandRequest<TBody>,
   handler: CommandHandler<TBody, TInput, TResult>,
   mode: ApprovalMode,
+  enabledModules: ReadonlySet<ModuleId>,
+  /** Passed in, never read from the clock here — an expiring grant has to be testable. */
+  now: string,
 ): Promise<CommandOutcome<TResult>> {
   const { principal, target, action, idempotency } = request;
   const requestDigest = contentDigest({ body: request.body, action, target });
@@ -125,13 +129,44 @@ export async function executeCommand<TBody, TInput, TResult>(
   }
 
   // --- Step 2: authorize all targets -------------------------------------------------
-  // Phase 0.3 checks the capability registry only. Phase 0.4 generalises this to resource
-  // scope, data classification and module availability — deny by default across all four
-  // terms of `00-shared-contract.md:64`. Until then a caller with the capability passes,
-  // which is why 0.4 comes before anything renders real data.
-  const submitCapability = requiredDecisionsFor(action)[0]?.capability;
-  if (submitCapability !== undefined && !principal.capabilities.includes(submitCapability)) {
-    return fail('FORBIDDEN', `missing capability ${submitCapability}`);
+  // All five terms of `00-shared-contract.md:64`, deny by default: active user, explicit
+  // capability, resource scope, data classification and module availability. The
+  // decision itself is in `packages/domain`, framework-free, so the same rule cannot be
+  // implemented twice with two answers.
+  //
+  // "all targets", plural, is the spec's word. Today a command has one target; when a
+  // module adds a second, it authorizes both here rather than inside `apply`.
+  const capability = requiredDecisionsFor(action)[0]?.capability;
+  if (capability === undefined) {
+    // An action whose capability the spec names only by role cannot be authorized yet.
+    // Blocking is the honest answer; the alternative is letting it through unchecked.
+    return fail('POLICY_REQUIRED', `${action} has no registered capability`);
+  }
+
+  const subject = await loadSubject(tx, principal.user_id);
+  if (subject === undefined) return fail('FORBIDDEN', 'unknown principal');
+
+  const targetRows = await tx
+    .select()
+    .from(resourceRecord)
+    .where(eq(resourceRecord.id, target.id))
+    .limit(1);
+  const targetRow = targetRows[0];
+  if (targetRow === undefined) return fail('NOT_FOUND');
+
+  const decision = decideAccess({
+    subject,
+    capability,
+    resource: {
+      ref: target,
+      classification: targetRow.classification as 'internal' | 'client_shareable' | 'restricted',
+      ancestors: await loadAncestors(tx, target.id),
+    },
+    enabledModules,
+    at: now,
+  });
+  if (!decision.allowed) {
+    return decision.status === 403 ? fail('FORBIDDEN', decision.reason) : fail('NOT_FOUND');
   }
 
   // --- Steps 3–4: lock rows in stable ID order, then verify If-Match -----------------

@@ -1,17 +1,18 @@
-import type {
-  Capability,
-  ControlledActionCode,
-  ErrorCode,
-  ResourceRef,
-  RoleCode,
-} from '@dc/contracts';
+import type { ControlledActionCode, ErrorCode, ResourceRef, RoleCode } from '@dc/contracts';
 import type { UserId } from '@dc/domain';
 
-/** Who is asking. Capabilities are the 0.2 registry; 0.4 adds scope and classification. */
+/**
+ * Who is asking — the authenticated user id, and nothing else.
+ *
+ * It deliberately carries no capability or role list. Phase 0.3 had both, and the
+ * authorization engine landing in 0.4 made them worse than useless: the server loads
+ * roles and grants from the database, so a list on the request is either ignored or
+ * trusted, and only one of those is safe. Same reasoning as `CLAUDE.md` non-negotiable
+ * #2 — the required reviewer capability comes from the server-owned registry, never from
+ * request data. A caller's own capabilities are no different.
+ */
 export interface Principal {
   readonly user_id: UserId;
-  readonly capabilities: readonly Capability[];
-  readonly roles: readonly RoleCode[];
 }
 
 export interface IdempotencyKey {

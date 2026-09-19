@@ -15,6 +15,13 @@
       "when": 1789840505615,
       "tag": "0001_shared_kernel",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789841451584,
+      "tag": "0002_identity_and_grants",
+      "breakpoints": true
     }
   ]
 }
