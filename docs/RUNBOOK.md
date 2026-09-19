@@ -125,3 +125,59 @@ leaves a module disabled is indistinguishable from a deliberate choice.
 
 Startup only computes the enabled set. Module availability enters the access decision in
 the authorization engine at Phase 0.4.
+
+---
+
+## Contracts
+
+`packages/contracts` is the keystone. DTOs, the French error catalog and the capability,
+role and action registries live here, and everything downstream is generated from or
+validated against them. Change contracts first, then let the types propagate.
+
+### The registries are extracted, not authored
+
+Every entry in the capability, role and action registries carries a `source` of the form
+`file.md:line` pointing into `specs/`, and `registry.test.ts` reads those lines from disk
+and asserts they still say what the entry claims. That test is what keeps "extracted from
+the specification" true rather than aspirational, and it fails loudly when a spec edit
+shifts a line.
+
+If a module needs a capability that is not registered, **the specification does not name
+it.** Add it with a citation, or raise it as a specification gap. Do not coin one — see
+[ADR-001](01-DECISIONS.md#adr-001).
+
+### Separation of duty is about identity, not capability codes
+
+The action registry transcribes `20-data-api-contract-details.md:65–78`. Three properties
+of that table are easy to get wrong, and each one is a hole:
+
+- Four rows require *"a different `access_admin`"*, *"different scoped `dispatcher`"*, a
+  *"different designated privacy reviewer"* and *"different `platform_operator`"*. The
+  reviewer holds the **same capability** as the submitter. Checking that the reviewer
+  capability differs from the submitter's would pass a self-approval on all four.
+- An action can require several independent decisions against one frozen payload, and
+  every one must be present before effect.
+- One qualified person may satisfy several required decisions. `:79` — *"do not invent a
+  required staff count."* Requiring a headcount would make the product unusable at the
+  six-person firm it targets.
+
+`submitterMayNeverDecide` states the universal rule; `distinct_person` marks the narrower
+constraint the four rows add.
+
+### Regenerating the OpenAPI document
+
+```bash
+pnpm --filter @dc/api build && node apps/api/dist/main.js   # then GET /api/v1/openapi
+```
+
+The document is **3.1.0**, not Nest's 3.0 default. OpenAPI 3.0 schemas are a modified
+draft-04 subset, while the component schemas come out of Zod as draft 2020-12 — the
+dialect 3.1 uses. A 3.0 document embedding 2020-12 schemas is rejected by validators and
+misread by generators, silently and in whichever direction they guess.
+
+### Why there is no arithmetic in this package
+
+`Decimal` has `scaleOf` and `signOf`, and deliberately no `add`, `multiply` or `round`.
+Exact arithmetic belongs in `packages/domain` against a real decimal library, and rounding
+comes from reviewed `CurrencyPolicy` (`00-shared-contract.md:49`), never from a default.
+A convenient `add` here is how a float creeps back into the ledger.
