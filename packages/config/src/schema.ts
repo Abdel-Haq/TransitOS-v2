@@ -37,6 +37,12 @@ export const REQUIRED_KEYS = [
   'BUSINESS_TIMEZONE',
   'ENVIRONMENT',
   'APPROVED_POLICY_SET_ID',
+  // Not one of the fifteen keys of `19-…:63`. Added by
+  // [ADR-002](../../../docs/01-DECISIONS.md#adr-002), because the mode has to be known
+  // before the first controlled command and gated by environment identity — which is
+  // what this file is for. The `small_org_documented` subset is a policy-register value,
+  // not a startup key.
+  'APPROVAL_POLICY_MODE',
 ] as const;
 
 export type RequiredKey = (typeof REQUIRED_KEYS)[number];

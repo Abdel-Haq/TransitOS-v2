@@ -38,7 +38,7 @@ hide that and stall finished work.
 | P0 | 0.5b primitives consumed by Phase 1–2 | — | — | planned | — | — | — |
 | P0 | 0.5c categorical chart sequence | — | — | planned | — | unassigned — needs a CVD-simulation reviewer | — |
 | P0 | 0.6 staff shell + review-state component | — | — | planned | — | — | ADR-001 |
-| P0 | 0.7 approval policy modes | — | — | planned | — | — | ADR-002 |
+| P0 | 0.7 approval policy modes | `packages/config/src/approval-mode.ts`, `packages/domain/src/approval` | `approval.test.ts` | code_complete | `policy.approval.small_org_subset`† | approval policy owner | ADR-002 |
 | P0 | 0.8 minimal typed rule registry | — | — | planned | — | — | — |
 | P0 | 0.9 policy register A/B classification | — | — | planned | — | — | ADR-005 |
 

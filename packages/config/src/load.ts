@@ -1,6 +1,13 @@
 import { CORE_MODULES, isModuleId, isOptionalModule, type ModuleId } from './modules.js';
 import { parseSecretRef, SecretRefError, type SecretRef } from './secret-ref.js';
 import {
+  APPROVAL_MODES,
+  DEPLOYABLE_APPROVAL_MODES,
+  isApprovalMode,
+  isDeployableApprovalMode,
+  type ApprovalMode,
+} from './approval-mode.js';
+import {
   ENVIRONMENTS,
   REQUIRED_KEYS,
   UNAPPROVED_POLICY_SET,
@@ -26,6 +33,7 @@ export interface AppConfig {
   readonly scannerEndpoint: URL;
   readonly businessTimezone: string;
   readonly approvedPolicySetId: string;
+  readonly approvalPolicyMode: ApprovalMode;
   /** Core modules, plus whichever optional modules the deployment enabled. */
   readonly enabledModules: ReadonlySet<ModuleId>;
 }
@@ -200,6 +208,28 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ConfigResult {
     }
   }
 
+  const approvalModeRaw = read('APPROVAL_POLICY_MODE');
+  const approvalMode =
+    approvalModeRaw !== undefined && isApprovalMode(approvalModeRaw) ? approvalModeRaw : undefined;
+  if (approvalModeRaw !== undefined && approvalMode === undefined) {
+    throw_(
+      problems,
+      'APPROVAL_POLICY_MODE',
+      `must be one of ${APPROVAL_MODES.join(', ')} — got "${approvalModeRaw}"`,
+    );
+  } else if (approvalMode !== undefined && deployed && !isDeployableApprovalMode(approvalMode)) {
+    // The production readiness check of ADR-002. A deployment running
+    // `dev_single_approver` has separation of duty switched off while every screen still
+    // reads `Approuvé`, so this refuses to start rather than warning.
+    throw_(
+      problems,
+      'APPROVAL_POLICY_MODE',
+      `"${approvalMode}" is a development mode and cannot run in ${environment}: it lets a ` +
+        `submitter approve their own controlled action. See ADR-002. Use one of ` +
+        `${DEPLOYABLE_APPROVAL_MODES.join(', ')}.`,
+    );
+  }
+
   const timezone = read('BUSINESS_TIMEZONE');
   if (timezone !== undefined && !isValidTimezone(timezone)) {
     throw_(
@@ -251,6 +281,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ConfigResult {
       scannerEndpoint: scannerEndpoint!,
       businessTimezone: timezone!,
       approvedPolicySetId: read('APPROVED_POLICY_SET_ID')!,
+      approvalPolicyMode: approvalMode!,
       enabledModules,
     },
   };

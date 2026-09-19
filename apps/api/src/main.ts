@@ -43,7 +43,8 @@ async function bootstrap(): Promise<void> {
   logger.log(`OpenAPI document at ${config.apiBaseUrl.origin}/${OPENAPI_PATH}`);
   logger.log(
     `API listening on ${port} · environment=${config.environment} · ` +
-      `policy set=${config.approvedPolicySetId} · timezone=${config.businessTimezone}`,
+      `policy set=${config.approvedPolicySetId} · timezone=${config.businessTimezone} · ` +
+      `approval=${config.approvalPolicyMode}`,
   );
   const optional = [...config.enabledModules].filter((m) => m.startsWith('DF'));
   logger.log(`optional modules enabled: ${optional.length > 0 ? optional.join(', ') : 'none'}`);

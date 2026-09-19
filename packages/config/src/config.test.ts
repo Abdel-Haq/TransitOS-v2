@@ -24,6 +24,7 @@ const local = (): Record<string, string> => ({
   ENVIRONMENT: 'local',
   APPROVED_POLICY_SET_ID: UNAPPROVED_POLICY_SET,
   ENABLED_MODULES: '',
+  APPROVAL_POLICY_MODE: 'dev_single_approver',
 });
 
 const deployed = (): Record<string, string> => ({
@@ -37,6 +38,7 @@ const deployed = (): Record<string, string> => ({
   SESSION_KEY_REF: 'file:/run/secrets/session_key',
   OBJECT_STORE_CREDENTIALS_REF: 'file:/run/secrets/object_store',
   APPROVED_POLICY_SET_ID: 'policy-set-2026-03-reviewed',
+  APPROVAL_POLICY_MODE: 'independent_reviewer',
 });
 
 const keysOf = (env: Record<string, string>) => {
@@ -185,6 +187,46 @@ describe('deployed environments are stricter', () => {
   });
 });
 
+describe('approval policy mode — ADR-002', () => {
+  it('accepts dev_single_approver locally, so one person can develop', () => {
+    expect(loadConfig({ ...local(), APPROVAL_POLICY_MODE: 'dev_single_approver' }).ok).toBe(true);
+    expect(
+      loadConfig({ ...local(), ENVIRONMENT: 'ci', APPROVAL_POLICY_MODE: 'dev_single_approver' }).ok,
+    ).toBe(true);
+  });
+
+  it.each(['staging', 'production'])('refuses dev_single_approver in %s', (environment) => {
+    // The production readiness check of ADR-002. A deployment running this mode has
+    // separation of duty switched off while every screen still reads `Approuvé`.
+    const problems = keysOf({
+      ...deployed(),
+      ENVIRONMENT: environment,
+      APPROVAL_POLICY_MODE: 'dev_single_approver',
+    });
+    expect(problems).toContain('APPROVAL_POLICY_MODE');
+  });
+
+  it('accepts the two deployable modes in production', () => {
+    for (const mode of ['independent_reviewer', 'small_org_documented']) {
+      expect(loadConfig({ ...deployed(), APPROVAL_POLICY_MODE: mode }).ok, mode).toBe(true);
+    }
+  });
+
+  it('refuses an unknown mode rather than falling back to the default', () => {
+    // Falling back to independent_reviewer would be the safe direction, and still wrong:
+    // the deployment asked for something, and silently substituting hides the typo.
+    expect(keysOf({ ...local(), APPROVAL_POLICY_MODE: 'single' })).toContain(
+      'APPROVAL_POLICY_MODE',
+    );
+  });
+
+  it('is required, with no default', () => {
+    const env = local();
+    delete env.APPROVAL_POLICY_MODE;
+    expect(keysOf(env)).toContain('APPROVAL_POLICY_MODE');
+  });
+});
+
 describe('enabled-module list', () => {
   const modulesOf = (value: string) => {
     const result = loadConfig({ ...local(), ENABLED_MODULES: value });
@@ -291,6 +333,9 @@ describe('readiness never carries a secret', () => {
     // Not even the locator, which would tell a reader where to go looking.
     expect(serialized).not.toContain('/run/secrets');
     expect(serialized).not.toContain('DATABASE_URL"');
+    // The deployment's separation-of-duty posture is not a secret — an operator must be
+    // able to see it without reading the container's environment.
+    expect(serialized).toContain('dev_single_approver');
   });
 
   it('reports not ready, with keys and reasons but no values, when config is invalid', () => {

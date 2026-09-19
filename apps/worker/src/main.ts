@@ -17,7 +17,8 @@ if (!result.ok) {
 
 const config = result.config;
 console.log(
-  `worker ready · environment=${config.environment} · timezone=${config.businessTimezone}`,
+  `worker ready · environment=${config.environment} · timezone=${config.businessTimezone} · ` +
+    `approval=${config.approvalPolicyMode}`,
 );
 
 const shutdown = (signal: NodeJS.Signals): void => {

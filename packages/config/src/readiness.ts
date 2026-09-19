@@ -24,6 +24,8 @@ export interface ReadinessReport {
   readonly environment: string;
   readonly businessTimezone: string;
   readonly approvedPolicySetId: string;
+  /** ADR-002. Visible to an operator: a deployment's separation-of-duty posture is not a secret. */
+  readonly approvalPolicyMode: string;
   readonly modules: Readonly<Record<ModuleId, 'enabled' | 'disabled'>>;
   readonly secrets: readonly { readonly key: string; readonly scheme: string }[];
   readonly dependencies: readonly DependencyReport[];
@@ -37,6 +39,7 @@ export function configInvalidReadiness(problems: readonly ConfigProblem[]): Read
     environment: 'unknown',
     businessTimezone: 'unknown',
     approvedPolicySetId: 'unknown',
+    approvalPolicyMode: 'unknown',
     modules: Object.fromEntries(
       ALL_MODULES.map((m) => [m, 'disabled']),
     ) as ReadinessReport['modules'],
@@ -55,6 +58,7 @@ export function buildReadiness(
     environment: config.environment,
     businessTimezone: config.businessTimezone,
     approvedPolicySetId: config.approvedPolicySetId,
+    approvalPolicyMode: config.approvalPolicyMode,
     modules: Object.fromEntries(
       ALL_MODULES.map((m) => [m, config.enabledModules.has(m) ? 'enabled' : 'disabled']),
     ) as ReadinessReport['modules'],

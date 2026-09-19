@@ -13,5 +13,9 @@
   },
   "scripts": {
     "build": "tsc -b"
+  },
+  "dependencies": {
+    "@dc/config": "workspace:*",
+    "@dc/contracts": "workspace:*"
   }
 }

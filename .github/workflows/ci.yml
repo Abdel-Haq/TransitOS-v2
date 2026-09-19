@@ -60,6 +60,7 @@ jobs:
       SCANNER_ENDPOINT: http://localhost:3310
       BUSINESS_TIMEZONE: Africa/Casablanca
       APPROVED_POLICY_SET_ID: local-dev-unapproved
+      APPROVAL_POLICY_MODE: dev_single_approver
 
     steps:
       - uses: actions/checkout@v5

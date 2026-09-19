@@ -15,6 +15,13 @@ export {
   type SecretRef,
   type SecretScheme,
 } from './secret-ref.js';
+export {
+  APPROVAL_MODES,
+  DEPLOYABLE_APPROVAL_MODES,
+  isApprovalMode,
+  isDeployableApprovalMode,
+  type ApprovalMode,
+} from './approval-mode.js';
 export { ENVIRONMENTS, UNAPPROVED_POLICY_SET, type EnvironmentIdentity } from './schema.js';
 export {
   loadConfig,

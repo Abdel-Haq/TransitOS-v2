@@ -181,3 +181,47 @@ misread by generators, silently and in whichever direction they guess.
 Exact arithmetic belongs in `packages/domain` against a real decimal library, and rounding
 comes from reviewed `CurrencyPolicy` (`00-shared-contract.md:49`), never from a default.
 A convenient `add` here is how a float creeps back into the ledger.
+
+---
+
+## Approval policy modes
+
+[ADR-002](01-DECISIONS.md#adr-002). `APPROVAL_POLICY_MODE` is startup configuration, gated
+by environment identity, and `packages/domain/src/approval` evaluates it.
+
+| Mode | Behaviour | Where |
+|---|---|---|
+| `independent_reviewer` | The spec default. The submitter cannot supply any required decision. | Any environment. |
+| `dev_single_approver` | The submitter may decide. Every such decision is stamped `self_approved: true`. | Local and CI **only** — startup exits `78` if it is set in staging or production. |
+| `small_org_documented` | Named so the production question stays visible. **Not implemented.** | Blocks with `POLICY_REQUIRED` and the key `policy.approval.small_org_subset`. |
+
+### Why solo mode is refused rather than warned
+
+A deployment running `dev_single_approver` has separation of duty switched off while every
+screen still reads `Approuvé`. Nothing in the UI would show it, and the audit trail would
+look like a normal approval. The only safe treatment is a process that will not start.
+
+`small_org_documented` blocks rather than falling back to `independent_reviewer`. Falling
+back is the safe direction and still wrong: the deployment asked for something and would
+silently not get it.
+
+### What `self_approved` means, and what it does not
+
+It is stamped only when the separation genuinely did not hold. If both the submitter and
+an independent reviewer recorded a decision, the evaluator takes the independent one and
+stamps nothing — so a `self_approved` row in the audit export is always a real finding,
+never noise from an extra click.
+
+### Why there is no approver headcount
+
+`20-data-api-contract-details.md:79` — *"A reviewer may satisfy multiple required
+capabilities if explicitly granted and qualified; do not invent a required staff count."*
+One qualified person may close several required decisions. At the six-person *transitaire*
+this product targets, counting distinct approvers would make it unusable, and the
+specification forbids inventing the number.
+
+Four actions do need a second person in the same role — `privilege.expand`,
+`transport.exception`, `privacy.request`, `installation.approve` — because the
+separation-of-duty table puts the same role on both sides. `secondPersonRolesFor` returns
+them, so a screen can say *"this needs another `access_admin`"* instead of showing a block
+the user cannot clear by granting themselves more capability.

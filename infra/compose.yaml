@@ -37,6 +37,7 @@ x-app-env: &app-env
   SCANNER_ENDPOINT: http://clamav:3310
   BUSINESS_TIMEZONE: ${BUSINESS_TIMEZONE:-Africa/Casablanca}
   APPROVED_POLICY_SET_ID: ${APPROVED_POLICY_SET_ID:-local-dev-unapproved}
+  APPROVAL_POLICY_MODE: ${APPROVAL_POLICY_MODE:-dev_single_approver}
   ENABLED_MODULES: ${ENABLED_MODULES:-}
 
 services:
