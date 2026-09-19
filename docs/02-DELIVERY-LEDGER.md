@@ -31,8 +31,8 @@ hide that and stall finished work.
 | P0 | 0.2 value types (`Money`, `Quantity`, `Decimal`, refs) | `packages/contracts/src/value` | `value-types.test.ts` | code_complete | — | — | ADR-003 |
 | P0 | 0.2b French error catalog | `packages/contracts/src/errors` | `errors.test.ts` | code_complete | — | — | — |
 | P0 | 0.2c capability + action registry | `packages/contracts/src/registry` | `registry.test.ts` | code_complete | — | — | — |
-| P0 | 0.3 shared kernel schema | — | — | planned | — | — | — |
-| P0 | 0.3b controlled-command flow end to end | — | — | planned | — | — | — |
+| P0 | 0.3 shared kernel schema | `db/src/schema/kernel.ts`, `db/migrations/0001_shared_kernel.sql` | `kernel.integration.test.ts` | code_complete | — | — | — |
+| P0 | 0.3b controlled-command flow end to end | `db/src/kernel/execute.ts` | `kernel.integration.test.ts` | code_complete | `policy.jobs.max_attempts`† | platform operator | — |
 | P0 | 0.4 authorization engine | — | — | planned | — | — | — |
 | P0 | 0.5a tokens, type scale, elevation | — | — | planned | — | — | ADR-006, ADR-007 |
 | P0 | 0.5b primitives consumed by Phase 1–2 | — | — | planned | — | — | — |

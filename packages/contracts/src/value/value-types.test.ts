@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { decimalSchema, decimal, scaleOf, signOf, isDecimal } from './decimal.js';
 import { moneySchema, sameCurrency } from './money.js';
 import { quantitySchema, transactionQuantitySchema, sameUnit } from './quantity.js';
-import { resourceRefSchema, RESOURCE_KINDS, sameResource } from './resource-ref.js';
+import {
+  resourceRefSchema,
+  RESOURCE_KINDS,
+  COINED_RESOURCE_KINDS,
+  isCoinedResourceKind,
+  sameResource,
+} from './resource-ref.js';
 import { evidenceRefSchema } from './evidence-ref.js';
 import { canonicalize, CanonicalizationError } from './canonical.js';
 import { snapshotRefSchema, contentDigest, matchesSnapshot } from './snapshot-ref.js';
@@ -107,6 +113,15 @@ describe('ResourceRef', () => {
     for (const kind of ['counterparty', 'dossier', 'ledger_transaction', 'approval_decision']) {
       expect(RESOURCE_KINDS).toContain(kind);
     }
+  });
+
+  it('has exactly one coined kind, and it is the kernel probe', () => {
+    // The registry's value is that it is extracted, not authored. kernel_probe is the
+    // single exception, and it is fenced: a second coined kind appearing here without a
+    // note in resource-ref.ts is the drift this test exists to stop.
+    expect(COINED_RESOURCE_KINDS).toEqual(['kernel_probe']);
+    expect(isCoinedResourceKind('kernel_probe')).toBe(true);
+    expect(isCoinedResourceKind('dossier')).toBe(false);
   });
 
   it('distinguishes same id, different kind', () => {

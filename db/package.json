@@ -19,7 +19,9 @@
   "dependencies": {
     "@dc/config": "workspace:*",
     "drizzle-orm": "^0.45.2",
-    "pg": "^8.23.0"
+    "pg": "^8.23.0",
+    "@dc/contracts": "workspace:*",
+    "@dc/domain": "workspace:*"
   },
   "devDependencies": {
     "@types/pg": "^8.23.1",

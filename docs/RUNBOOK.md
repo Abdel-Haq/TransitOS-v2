@@ -225,3 +225,64 @@ Four actions do need a second person in the same role — `privilege.expand`,
 separation-of-duty table puts the same role on both sides. `secondPersonRolesFor` returns
 them, so a screen can say *"this needs another `access_admin`"* instead of showing a block
 the user cannot clear by granting themselves more capability.
+
+---
+
+## The shared kernel
+
+Phase 0.3. Seven tables in `db/src/schema/kernel.ts`, transcribed from
+`02-FD02-evidence.md:19–25` and `20-data-api-contract-details.md:15`, plus `kernel_probe`
+— the one resource kind this project coined.
+
+### Why a coined resource kind
+
+The flow had to be proven end to end before any module existed. Borrowing a real kind like
+`cost_item` would have pre-empted CR02's schema, and a kind that lived only in tests would
+have left the flow unproven against the real CHECK constraints, indexes and row locks.
+`kernel_probe` is a kernel fixture and never a business resource; `COINED_RESOURCE_KINDS`
+names it and a test asserts it stays the only one.
+
+### The order of the controlled-command flow is not stylistic
+
+`CLAUDE.md` non-negotiable #8 and `00-shared-contract.md:92`:
+
+```
+validate → authorize → If-Match → lock → recheck → apply → consume approval
+  → audit + outbox → commit
+```
+
+- **Authorize before lock** so a denial never holds a lock.
+- **Lock before the `If-Match` recheck.** Reading the version, deciding it matches, then
+  locking leaves a window where another transaction commits in between. `execute.ts` locks
+  first and rechecks after, and `kernel.integration.test.ts` proves it: remove `.for('update')`
+  and the concurrency test fails with *two* winners instead of one.
+- **Consume the approval in the same transaction as the effect.** That is what stops one
+  approval from authorizing two effects, and a partial unique index on
+  `consumed_effect_id` backs it at the database rather than only in the code path taken.
+
+### Idempotency and rollback
+
+The claim is written inside the same transaction as the effect, so a rollback takes the
+claim with it — `20-…:15`, *"Failed effects that roll back cannot leave a successful
+response."* A retry after a failure is a fresh attempt, not a permanently poisoned key.
+Same key and same body replays the stored result without a second effect; a different body
+is `409 IDEMPOTENCY_CONFLICT`.
+
+### `SKIP LOCKED` belongs to the queue and nowhere else
+
+`00-shared-contract.md:40`. Skipping a locked row is right when another worker already
+holds the job and catastrophic in a balance check, where it silently drops a row from a
+total. It appears exactly once, in `claimJobs`.
+
+The lease is a deadline, not a flag: a worker that dies leaves a lease that expires and
+the job returns to the queue, so there is no janitor process to forget.
+
+**`db.execute` returns the driver's raw rows.** Drizzle's camelCase mapping applies to the
+query builder only, so `claimJobs` maps its `RETURNING` columns by hand. Casting instead
+compiles cleanly and hands every caller `undefined` — which it did, until a real worker
+run printed `no handler for "undefined"`. Running the thing found what the tests did not.
+
+### Retry limits are not set here
+
+`PROVISIONAL_MAX_ATTEMPTS` in the worker is marked against `policy.jobs.max_attempts`†
+and is not an approved value. It becomes real when the policy register lands in 0.8.

@@ -319,6 +319,17 @@ export const isControlledAction = (value: string): value is ControlledActionCode
   value in ACTION_REGISTRY;
 
 /**
+ * The registry entry, widened to `ControlledAction`.
+ *
+ * `ACTION_REGISTRY` is declared `as const satisfies`, which keeps every entry's literal
+ * type — so `capability` and `condition` are simply absent from the entries that omit
+ * them, and indexing the registry directly makes them unreadable across the union.
+ * Consumers read through this, not through the registry object.
+ */
+export const controlledAction = (action: ControlledActionCode): ControlledAction =>
+  ACTION_REGISTRY[action];
+
+/**
  * Every decision required before this action takes effect.
  *
  * The only supported way to answer the question. Taking it from a request body, a DTO

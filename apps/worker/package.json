@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@dc/config": "workspace:*",
+    "@dc/contracts": "workspace:*",
     "@dc/db": "workspace:*"
   }
 }

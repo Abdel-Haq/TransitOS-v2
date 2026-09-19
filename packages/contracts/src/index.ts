@@ -24,6 +24,8 @@ export {
 } from './value/quantity.js';
 export {
   RESOURCE_KINDS,
+  COINED_RESOURCE_KINDS,
+  isCoinedResourceKind,
   resourceKindSchema,
   resourceRefSchema,
   sameResource,
@@ -103,6 +105,7 @@ export {
   CONTROLLED_ACTIONS,
   OPEN_DECISIONS,
   isControlledAction,
+  controlledAction,
   requiredDecisionsFor,
   requiresDistinctPerson,
   conditionalDecisionsFor,

@@ -30,17 +30,20 @@ the places where the specs are not followed as written. Every `file.md:NN` citat
 
 ## Status
 
-Phases **0.1, 0.2 and 0.7 are code_complete**. The monorepo, toolchain, CI and Compose stack
+Phases **0.1, 0.2, 0.7 and 0.3 are code_complete**. The monorepo, toolchain, CI and Compose stack
 are in place; the startup configuration contract of `19-security-operations-delivery.md:63`
 is implemented and tested in `packages/config`; and `packages/contracts` now holds the
 value types, the French error catalog, and the capability, role and action registries,
 with an OpenAPI 3.1 document generated from the same definitions that validate at runtime.
 `packages/domain` holds the first framework-free rule: the approval evaluator, which
-decides whether a controlled action has every decision it needs.
-There is no schema yet beyond the extension bootstrap — the shared kernel is 0.3.
+decides whether a controlled action has every decision it needs. The shared kernel is in
+place — `ResourceRecord`, `ReviewRequest`, `ApprovalDecision`, `AuditEvent`, `Job`,
+`OutboxEvent` and `IdempotencyRecord` — and the controlled-command flow runs end to end
+against real PostgreSQL, with the row lock, the single-use approval latch and the
+idempotency claim all proven under concurrency.
 
 Build order for Phase 0 is **0.1 → 0.2 → 0.7 → 0.3 → 0.4 → 0.5(a) → 0.6 → 0.8**, with 0.9
-running in parallel from day one. Next is **0.3**, the shared kernel.
+running in parallel from day one. Next is **0.4**, the authorization engine.
 
 See [`docs/RUNBOOK.md`](docs/RUNBOOK.md) to run it.
 

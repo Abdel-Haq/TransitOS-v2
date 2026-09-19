@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { createPool } from '@dc/db';
 import {
   buildReadiness,
   configInvalidReadiness,
@@ -11,6 +12,29 @@ import {
 export class HealthService {
   private readonly logger = new Logger(HealthService.name);
 
+  /**
+   * The first real dependency probe. Phase 0.3 lands the schema, so Postgres stops being
+   * `unchecked` and starts being answered. The other three become real with the adapters
+   * that own them: identity at 1.1, object store and scanner at 1.2.
+   *
+   * A cheap `SELECT 1` on purpose. A readiness probe that runs a business query turns
+   * every health check into load, and turns a slow query into a false outage.
+   */
+  private async probePostgres(): Promise<DependencyReport> {
+    const result = loadConfig();
+    if (!result.ok) return { name: 'postgres', status: 'down', detail: 'configuration invalid' };
+    const pool = createPool(result.config);
+    try {
+      await pool.query('SELECT 1');
+      return { name: 'postgres', status: 'up' };
+    } catch {
+      // Never surface the driver's message: it carries the connection string.
+      return { name: 'postgres', status: 'down', detail: 'connection failed' };
+    } finally {
+      await pool.end();
+    }
+  }
+
   async readiness(): Promise<ReadinessReport> {
     const result = loadConfig();
     if (!result.ok) return configInvalidReadiness(result.problems);
@@ -19,7 +43,7 @@ export class HealthService {
       // Phase 0.1 reports the shape and leaves the probes unchecked. Each becomes a real
       // check when the adapter that owns it lands: Postgres with the shared kernel (0.3),
       // identity with FD01 (1.1), object store and scanner with FD02 (1.2).
-      { name: 'postgres', status: 'unchecked' },
+      await this.probePostgres(),
       { name: 'identity', status: 'unchecked' },
       { name: 'object_store', status: 'unchecked' },
       { name: 'scanner', status: 'unchecked' },

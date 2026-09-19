@@ -45,11 +45,28 @@ export const RESOURCE_KINDS = [
   'external_observation',
   // Documents attach through ResourceEvidence
   'resource_evidence',
+
+  // --- Not from the specs -------------------------------------------------------------
+  // The one coined kind. Phase 0.3 has to prove the controlled-command flow end to end
+  // before any module exists, and the alternatives were both worse: borrowing a real kind
+  // like `cost_item` would pre-empt CR02's schema, and a kind that exists only in tests
+  // would leave the flow unproven against the real CHECK constraints and indexes.
+  //
+  // It is a kernel fixture, never a business resource. Nothing outside db/src/kernel and
+  // its tests may use it, and `resource-ref.test.ts` asserts it is the only kind here
+  // without a spec citation.
+  'kernel_probe',
 ] as const;
+
+/** Kinds this project coined rather than found in the specs. See the note above. */
+export const COINED_RESOURCE_KINDS = ['kernel_probe'] as const;
 
 export type ResourceKind = (typeof RESOURCE_KINDS)[number];
 
 export const resourceKindSchema = z.enum(RESOURCE_KINDS);
+
+export const isCoinedResourceKind = (kind: ResourceKind): boolean =>
+  (COINED_RESOURCE_KINDS as readonly string[]).includes(kind);
 
 export const resourceRefSchema = z
   .object({

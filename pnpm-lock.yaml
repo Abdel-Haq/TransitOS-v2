@@ -88,6 +88,9 @@ importers:
       '@dc/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@dc/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
       '@dc/db':
         specifier: workspace:*
         version: link:../../db
@@ -97,6 +100,12 @@ importers:
       '@dc/config':
         specifier: workspace:*
         version: link:../packages/config
+      '@dc/contracts':
+        specifier: workspace:*
+        version: link:../packages/contracts
+      '@dc/domain':
+        specifier: workspace:*
+        version: link:../packages/domain
       drizzle-orm:
         specifier: ^0.45.2
         version: 0.45.2(@types/pg@8.23.1)(pg@8.23.0)
