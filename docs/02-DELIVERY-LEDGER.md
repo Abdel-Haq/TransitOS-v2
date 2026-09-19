@@ -26,8 +26,8 @@ hide that and stall finished work.
 
 | module | requirement | impl_ref | test_ref | status | blocking_policy_keys | reviewer | decision_ref |
 |---|---|---|---|---|---|---|---|
-| P0 | 0.1 monorepo, CI, compose stack | — | — | planned | — | — | — |
-| P0 | 0.1b startup config validation (§19 contract) | — | — | planned | — | — | — |
+| P0 | 0.1 monorepo, CI, compose stack | `infra/compose.yaml`, `.github/workflows/ci.yml` | `db/src/migrate.integration.test.ts` | code_complete | — | — | — |
+| P0 | 0.1b startup config validation (§19 contract) | `packages/config` | `packages/config/src/config.test.ts` | code_complete | — | — | — |
 | P0 | 0.2 value types (`Money`, `Quantity`, `Decimal`, refs) | — | — | planned | — | — | ADR-003 |
 | P0 | 0.2b French error catalog | — | — | planned | — | — | — |
 | P0 | 0.2c capability + action registry | — | — | planned | — | — | — |

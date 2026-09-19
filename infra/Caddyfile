@@ -1,0 +1,30 @@
+# The reverse proxy of `19-security-operations-delivery.md:65`:
+#   "reverse proxy routes web and same-origin API"
+#
+# It exists in local development for one reason: the session cookie is HttpOnly and
+# same-origin. If the API sat on its own port locally and behind a proxy in production,
+# the only environment where the cookie behaviour is exercised would be production.
+# So APP_BASE_URL and API_BASE_URL share an origin everywhere, and @dc/config refuses
+# to start if they do not.
+
+:8080 {
+	# Keycloak owns passwords, MFA and recovery. It is mounted under a path prefix
+	# rather than a subdomain so that it, too, is same-origin.
+	handle /identity/* {
+		reverse_proxy keycloak:8080
+	}
+
+	handle /api/* {
+		reverse_proxy api:3001
+	}
+
+	handle {
+		reverse_proxy web:3000
+	}
+
+	encode gzip
+	log {
+		output stdout
+		format console
+	}
+}

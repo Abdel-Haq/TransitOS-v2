@@ -1,0 +1,186 @@
+# The local development environment of `19-security-operations-delivery.md:57`:
+# isolated PostgreSQL, object store, Keycloak and worker; synthetic fixtures; local
+# secrets ignored by version control; no production credentials and no real outbound
+# recipients.
+#
+#   docker compose -f infra/compose.yaml --env-file .env up --build
+#
+# Dependencies only, for running the apps on the host with `pnpm dev`:
+#
+#   docker compose -f infra/compose.yaml --env-file .env up postgres keycloak minio clamav
+#
+# Migrations are a job, never a step of API startup (19-…:65):
+#
+#   docker compose -f infra/compose.yaml --env-file .env run --rm migrate
+
+name: dossier-clair
+
+x-app-env: &app-env
+  ENVIRONMENT: ${ENVIRONMENT:-local}
+  APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
+  API_BASE_URL: ${API_BASE_URL:-http://localhost:8080/api}
+  DATABASE_URL_REF: env:DATABASE_URL
+  # Inside the network the services resolve each other by name; the browser reaches
+  # everything through the proxy on 8080. The issuer is the browser-facing URL because
+  # that is the value that has to match the token.
+  DATABASE_URL: postgres://dossier_clair:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/dossier_clair
+  OIDC_ISSUER: ${OIDC_ISSUER:-http://localhost:8080/identity/realms/dossier-clair}
+  OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-dossier-clair-web}
+  OIDC_CLIENT_SECRET_REF: env:OIDC_CLIENT_SECRET
+  OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:?set OIDC_CLIENT_SECRET}
+  SESSION_KEY_REF: env:SESSION_KEY
+  SESSION_KEY: ${SESSION_KEY:?set SESSION_KEY}
+  OBJECT_STORE_ENDPOINT: http://minio:9000
+  OBJECT_STORE_BUCKET: ${OBJECT_STORE_BUCKET:-dossier-clair-documents}
+  OBJECT_STORE_CREDENTIALS_REF: env:OBJECT_STORE_CREDENTIALS
+  OBJECT_STORE_CREDENTIALS: ${OBJECT_STORE_CREDENTIALS:?set OBJECT_STORE_CREDENTIALS}
+  SCANNER_ENDPOINT: http://clamav:3310
+  BUSINESS_TIMEZONE: ${BUSINESS_TIMEZONE:-Africa/Casablanca}
+  APPROVED_POLICY_SET_ID: ${APPROVED_POLICY_SET_ID:-local-dev-unapproved}
+  ENABLED_MODULES: ${ENABLED_MODULES:-}
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: dossier_clair
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: dossier_clair
+    ports: ['5432:5432']
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres/01-databases.sql:/docker-entrypoint-initdb.d/01-databases.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U dossier_clair -d dossier_clair']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.4
+    command: ['start-dev', '--import-realm']
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?set KEYCLOAK_ADMIN_PASSWORD}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: dossier_clair
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      # Mounted under a path prefix so identity is same-origin with the app.
+      KC_HTTP_RELATIVE_PATH: /identity
+      KC_HOSTNAME: http://localhost:8080/identity
+      KC_HTTP_ENABLED: 'true'
+      KC_PROXY_HEADERS: xforwarded
+    volumes:
+      - ./keycloak/realm-dossier-clair.json:/opt/keycloak/data/import/realm.json:ro
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  minio:
+    image: minio/minio:latest
+    command: ['server', '/data', '--console-address', ':9001']
+    environment:
+      MINIO_ROOT_USER: dossierclair
+      MINIO_ROOT_PASSWORD: ${POSTGRES_PASSWORD}
+    ports: ['9000:9000', '9001:9001']
+    volumes: ['minio-data:/data']
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # The bucket is private and versioned: object keys are immutable versions
+  # (CLAUDE.md §Stack), and nothing in this product serves a document by public URL.
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio: { condition: service_healthy }
+    environment:
+      BUCKET: ${OBJECT_STORE_BUCKET:-dossier-clair-documents}
+      MINIO_ROOT_PASSWORD: ${POSTGRES_PASSWORD}
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        mc alias set local http://minio:9000 dossierclair "$$MINIO_ROOT_PASSWORD"
+        mc mb --ignore-existing "local/$$BUCKET"
+        mc anonymous set none "local/$$BUCKET"
+        mc version enable "local/$$BUCKET"
+        echo "bucket $$BUCKET is private and versioned"
+    restart: 'no'
+
+  # Malware scan before any use (CLAUDE.md §Stack). The first start downloads
+  # signatures and takes several minutes; the healthcheck waits it out rather than
+  # letting the API believe a scanner is present when it is not.
+  clamav:
+    image: clamav/clamav:latest
+    ports: ['3310:3310']
+    volumes: ['clamav-data:/var/lib/clamav']
+    healthcheck:
+      test: ['CMD-SHELL', 'clamdcheck.sh || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 300s
+
+  migrate:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+      target: migrate
+    environment: *app-env
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: 'no'
+
+  api:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+      target: api
+    environment: *app-env
+    expose: ['3001']
+    depends_on:
+      postgres: { condition: service_healthy }
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'node -e "fetch(\"http://127.0.0.1:3001/api/healthz\").then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  worker:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+      target: worker
+    environment: *app-env
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  web:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+      target: web
+    environment: *app-env
+    expose: ['3000']
+
+  proxy:
+    image: caddy:2-alpine
+    ports: ['8080:8080']
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    depends_on: [api, web, keycloak]
+
+volumes:
+  postgres-data:
+  minio-data:
+  clamav-data:
+  caddy-data:

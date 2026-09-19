@@ -1,7 +1,7 @@
 # Dossier Clair
 
-A customs operations system for Moroccan customs brokers and RED (*régimes économiques en
-douane*) operators. Single tenant — one operating organization per deployment.
+A customs operations system for Moroccan customs brokers and RED (_régimes économiques en
+douane_) operators. Single tenant — one operating organization per deployment.
 
 **The bet:** make every dossier's next action, responsible person, supporting evidence and
 financial exposure explicit, so avoidable rework is prevented and blockers are explained
@@ -10,13 +10,13 @@ AI assists that work; it is not the promise.
 
 ## Read in this order
 
-| | | |
-|---|---|---|
-| 1 | [`CLAUDE.md`](CLAUDE.md) | Non-negotiables, stack, conventions. Read before writing code. |
-| 2 | [`docs/00-PLAN.md`](docs/00-PLAN.md) | Phased implementation plan and what to build next. |
-| 3 | [`docs/01-DECISIONS.md`](docs/01-DECISIONS.md) | Nine decisions where this project departs from the specs, and why. |
-| 4 | [`docs/03-DESIGN-FOUNDATION.md`](docs/03-DESIGN-FOUNDATION.md) | Tokens, type, components. |
-| 5 | [`docs/02-DELIVERY-LEDGER.md`](docs/02-DELIVERY-LEDGER.md) | Status per requirement, and the policy keys blocking release. |
+|     |                                                                |                                                                    |
+| --- | -------------------------------------------------------------- | ------------------------------------------------------------------ |
+| 1   | [`CLAUDE.md`](CLAUDE.md)                                       | Non-negotiables, stack, conventions. Read before writing code.     |
+| 2   | [`docs/00-PLAN.md`](docs/00-PLAN.md)                           | Phased implementation plan and what to build next.                 |
+| 3   | [`docs/01-DECISIONS.md`](docs/01-DECISIONS.md)                 | Nine decisions where this project departs from the specs, and why. |
+| 4   | [`docs/03-DESIGN-FOUNDATION.md`](docs/03-DESIGN-FOUNDATION.md) | Tokens, type, components.                                          |
+| 5   | [`docs/02-DELIVERY-LEDGER.md`](docs/02-DELIVERY-LEDGER.md)     | Status per requirement, and the policy keys blocking release.      |
 
 The functional specifications are vendored at [`specs/`](specs/) and are the source of truth
 for **what** to build. This repository's docs cover **how** and **in what order**, and record
@@ -30,13 +30,19 @@ the places where the specs are not followed as written. Every `file.md:NN` citat
 
 ## Status
 
-Planning. No code yet. Next step is Phase 0.1 — monorepo, CI and the Compose stack.
+Phase **0.1 is code_complete**: the monorepo, toolchain, CI and Compose stack are in
+place, and the startup configuration contract of `19-security-operations-delivery.md:63`
+is implemented and tested in `packages/config`. There is no schema yet beyond the
+extension bootstrap — the shared kernel is 0.3.
+
 Build order for Phase 0 is **0.1 → 0.2 → 0.7 → 0.3 → 0.4 → 0.5(a) → 0.6 → 0.8**, with 0.9
-running in parallel from day one.
+running in parallel from day one. Next is **0.2**, `packages/contracts`.
+
+See [`docs/RUNBOOK.md`](docs/RUNBOOK.md) to run it.
 
 ## Two things to know up front
 
-**Unknown business values are never invented.** 49 markers across the specs flag *assumption to verify* values — tax rates, statutory deadlines, carrier free time, retention
+**Unknown business values are never invented.** 49 markers across the specs flag _assumption to verify_ values — tax rates, statutory deadlines, carrier free time, retention
 durations, service targets. They live in a policy register, they block activation of the
 capability that needs them, and the UI says `À confirmer`. Code completion and production
 readiness are separate milestones.

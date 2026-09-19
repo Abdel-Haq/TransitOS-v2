@@ -8,3 +8,12 @@ build/
 coverage/
 *.log
 .DS_Store
+
+# Toolchain
+dist/
+.turbo/
+*.tsbuildinfo
+next-env.d.ts
+
+# Local infrastructure state
+pgdata/

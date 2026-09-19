@@ -1,0 +1,108 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A second push supersedes the first; nothing is learned from a run against a commit
+# that is already stale.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Lint, types, tests, migrations
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    # Migrations run against a real PostgreSQL, not a stub. 19-…:58 requires disposable
+    # services and a disposable database per test run; every invariant this product
+    # relies on — CHECK constraints, exclusion constraints, NUMERIC exactness, row
+    # locking — is a property of the database and cannot be verified without one.
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: dossier_clair
+          POSTGRES_PASSWORD: ci-not-a-secret
+          POSTGRES_DB: dossier_clair
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U dossier_clair -d dossier_clair"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      # CI is an environment identity of its own (19-…:58). It permits the local policy
+      # sentinel and env: secret refs; staging and production do not, and @dc/config
+      # enforces that difference.
+      ENVIRONMENT: ci
+      APP_BASE_URL: http://localhost:8080
+      API_BASE_URL: http://localhost:8080/api
+      DATABASE_URL_REF: env:DATABASE_URL
+      DATABASE_URL: postgres://dossier_clair:ci-not-a-secret@localhost:5432/dossier_clair
+      OIDC_ISSUER: http://localhost:8080/identity/realms/dossier-clair
+      OIDC_CLIENT_ID: dossier-clair-web
+      OIDC_CLIENT_SECRET_REF: env:OIDC_CLIENT_SECRET
+      OIDC_CLIENT_SECRET: ci-not-a-secret
+      SESSION_KEY_REF: env:SESSION_KEY
+      SESSION_KEY: ci-not-a-secret
+      OBJECT_STORE_ENDPOINT: http://localhost:9000
+      OBJECT_STORE_BUCKET: dossier-clair-documents
+      OBJECT_STORE_CREDENTIALS_REF: env:OBJECT_STORE_CREDENTIALS
+      OBJECT_STORE_CREDENTIALS: ci-not-a-secret
+      SCANNER_ENDPOINT: http://localhost:3310
+      BUSINESS_TIMEZONE: Africa/Casablanca
+      APPROVED_POLICY_SET_ID: local-dev-unapproved
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      # --frozen-lockfile: a dependency that changed without the lockfile is a review
+      # finding, not something CI resolves quietly on the developer's behalf.
+      - run: pnpm install --frozen-lockfile
+
+      - name: Format
+        run: pnpm format
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Migrate a real PostgreSQL
+        run: pnpm db:migrate
+
+      # Idempotence is not decoration: a deployment that retries a partially applied
+      # migration must converge, and expand-first migrations (19-…, release procedure)
+      # assume re-running is safe.
+      - name: Migrate again — must be a no-op
+        run: pnpm db:migrate
+
+      - name: Test
+        run: pnpm test
+
+  compose:
+    name: Compose stack parses
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - name: Validate infra/compose.yaml
+        run: |
+          cp .env.example .env
+          docker compose -f infra/compose.yaml --env-file .env config >/dev/null

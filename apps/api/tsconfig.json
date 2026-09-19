@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    // NestJS resolves injected dependencies from emitted parameter metadata, which
+    // requires the constructor's type imports to survive erasure. verbatimModuleSyntax
+    // removes them. It stays on everywhere else.
+    "verbatimModuleSyntax": false
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.test.ts"],
+  "references": [{ "path": "../../packages/config" }, { "path": "../../db" }]
+}

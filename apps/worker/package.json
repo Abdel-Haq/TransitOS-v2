@@ -1,0 +1,15 @@
+{
+  "name": "@dc/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b",
+    "start": "node dist/main.js",
+    "dev": "tsc -b --watch --preserveWatchOutput & node --watch dist/main.js"
+  },
+  "dependencies": {
+    "@dc/config": "workspace:*",
+    "@dc/db": "workspace:*"
+  }
+}

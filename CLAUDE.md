@@ -49,22 +49,28 @@ Violating any of these breaks a stated invariant, not a preference.
 
 ## Stack
 
-| Layer | Choice |
-|---|---|
-| Web | Next.js · React · TypeScript |
-| API | NestJS · TypeScript · generated OpenAPI · runtime DTO validation |
-| Data | PostgreSQL · Drizzle migrations |
-| Identity | Keycloak (OIDC, PKCE) — owns passwords, MFA, recovery. App owns resource permissions |
-| Session | Opaque server-side sessions in Postgres, HttpOnly same-origin cookies. **Never** tokens in `localStorage` |
-| Objects | Private S3-compatible, immutable version keys, malware scan before any use |
-| Jobs | Postgres job + outbox tables, worker leases, idempotent handlers |
-| Tests | Vitest · real-Postgres integration · Playwright E2E · OpenAPI contract validation |
+| Layer    | Choice                                                                                                    |
+| -------- | --------------------------------------------------------------------------------------------------------- |
+| Web      | Next.js · React · TypeScript                                                                              |
+| API      | NestJS · TypeScript · generated OpenAPI · runtime DTO validation                                          |
+| Data     | PostgreSQL · Drizzle migrations                                                                           |
+| Identity | Keycloak (OIDC, PKCE) — owns passwords, MFA, recovery. App owns resource permissions                      |
+| Session  | Opaque server-side sessions in Postgres, HttpOnly same-origin cookies. **Never** tokens in `localStorage` |
+| Objects  | Private S3-compatible, immutable version keys, malware scan before any use                                |
+| Jobs     | Postgres job + outbox tables, worker leases, idempotent handlers                                          |
+| Tests    | Vitest · real-Postgres integration · Playwright E2E · OpenAPI contract validation                         |
 
 ```
 apps/web  apps/api  apps/worker
-packages/contracts  packages/domain  packages/ui  packages/adapters
+packages/config  packages/contracts  packages/domain  packages/ui  packages/adapters
 db/migrations  infra  tests/fixtures
 ```
+
+`packages/config` owns the startup configuration contract of
+`specs/19-security-operations-delivery.md:63` — the fifteen required keys, secret
+_references_ rather than values, and the readiness payload. It is consumed by every
+process, so it depends on nothing but Node. Operational detail is in
+[`docs/RUNBOOK.md`](docs/RUNBOOK.md).
 
 `packages/contracts` is the keystone — DTOs, the French error catalog, the capability
 registry and the action registry. Everything is generated from or validated against it.

@@ -1,0 +1,40 @@
+{
+  "realm": "dossier-clair",
+  "_comment": "Local development fixture only. The client secret below must match OIDC_CLIENT_SECRET in .env; both are development values. Staging and production import their own realm with a secret from the deployment secret store, and @dc/config rejects env: secret refs there.",
+  "enabled": true,
+  "displayName": "Dossier Clair",
+  "defaultLocale": "fr",
+  "internationalizationEnabled": true,
+  "supportedLocales": ["fr"],
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "resetPasswordAllowed": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "maxFailureWaitSeconds": 900,
+  "failureFactor": 10,
+  "clients": [
+    {
+      "clientId": "dossier-clair-web",
+      "name": "Dossier Clair",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "dossier-clair-local-client-secret",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": ["http://localhost:8080/api/auth/callback"],
+      "webOrigins": ["http://localhost:8080"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:8080/"
+      }
+    }
+  ],
+  "roles": { "realm": [] },
+  "users": []
+}
