@@ -35,9 +35,9 @@ hide that and stall finished work.
 | P0 | 0.3b controlled-command flow end to end | `db/src/kernel/execute.ts` | `kernel.integration.test.ts` | code_complete | `policy.jobs.max_attempts`† | platform operator | — |
 | P0 | 0.4 authorization engine | `packages/domain/src/access`, `db/src/kernel/access.ts` | `access.test.ts`, `access.integration.test.ts` | code_complete | `policy.identity.role_bundles`† | access reviewer | — |
 | P0 | 0.5a tokens, type scale, elevation | `packages/ui/src/tokens` | `tokens.test.ts` + build gate | code_complete | — | — | ADR-006, ADR-007 |
-| P0 | 0.5b primitives consumed by Phase 1–2 | — | — | planned | — | — | — |
-| P0 | 0.5c categorical chart sequence | — | — | planned | — | unassigned — needs a CVD-simulation reviewer | — |
-| P0 | 0.6 staff shell + review-state component | — | — | planned | — | — | ADR-001 |
+| P0 | 0.5b primitives consumed by Phase 1–2 | — | — | **blocked** — awaiting `/travail` and `/dossiers/{id}` screen design | — | — | ADR-010 |
+| P0 | 0.5c categorical chart sequence | — | — | **blocked** — no reviewer who can run Viénot–Brettel–Mollon simulation | — | unassigned — needs a CVD-simulation reviewer | ADR-010 |
+| P0 | 0.6 staff shell + review-state component | — | — | **blocked** — the review-state component cannot be designed outside the screen it lives in | — | — | ADR-001, ADR-010 |
 | P0 | 0.7 approval policy modes | `packages/config/src/approval-mode.ts`, `packages/domain/src/approval` | `approval.test.ts` | code_complete | `policy.approval.small_org_subset`† | approval policy owner | ADR-002 |
 | P0 | 0.8 minimal typed rule registry | — | — | planned | — | — | — |
 | P0 | 0.9 policy register A/B classification | — | — | planned | — | — | ADR-005 |

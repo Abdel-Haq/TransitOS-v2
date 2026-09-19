@@ -112,7 +112,8 @@ Decisions in force here: [ADR-001](01-DECISIONS.md#adr-001) ·
 [03-DESIGN-FOUNDATION.md](03-DESIGN-FOUNDATION.md).
 
 **Item numbers are stable identifiers, not the build order.** §6 gives the order — 0.7 and
-0.4 land earlier than their numbers suggest.
+0.4 land earlier than their numbers suggest, and 0.5(b), 0.5(c) and 0.6 are blocked rather
+than next ([ADR-010](01-DECISIONS.md#adr-010)).
 
 **Only the staff shell is built here.** The other four ship with the phase that first renders
 them: auth with FD01 (1.1), client portal with CR06 (2.4), field with CR04 (3.1), public site
@@ -301,8 +302,18 @@ coined by this project rather than found in the specs is marked in the ledger.
 
 ## 6. Starting
 
-In order: **0.1 → 0.2 → 0.7 → 0.3 → 0.4 → 0.5(a) → 0.6 → 0.8**, with 0.9 alongside from
-day one. The first four are strictly sequential.
+In order: **0.1 → 0.2 → 0.7 → 0.3 → 0.4 → 0.5(a) → 0.8**, with 0.9 alongside from day one.
+The first four are strictly sequential.
+
+> **0.5(b), 0.5(c) and 0.6 are blocked and are not the next item.**
+> [ADR-010](01-DECISIONS.md#adr-010) revisited the order after 0.5(a) shipped: the
+> primitives and the staff shell wait on `/travail` and `/dossiers/{id}` being designed,
+> because components extracted from proven screens are the ones that survive and the
+> source file reached 190 component sets for 103 names by building them speculatively.
+> 0.5(c) is blocked on something else entirely — a reviewer who can run CVD simulation.
+>
+> **After 0.5(a), the next backend item is 0.8.** A session picking work up here should
+> not start 0.6.
 
 1. **0.1** — scaffold the monorepo, CI and Compose stack.
 2. **0.2** — write the value types and error catalog *before any table exists*. Everything
@@ -316,10 +327,17 @@ day one. The first four are strictly sequential.
    against the capability registry alone; 0.4 adds scope, classification and module
    availability, and everything after it assumes deny-by-default is real.
 6. **0.5 (a)** — port the tokens with their defects fixed, with the contrast test failing the
-   build. Then **0.6**, then **0.8** — the rule registry CR01 will need. 0.8's done-when
-   consumes both 0.4 and 0.7, so it cannot move earlier.
+   build.
+7. **0.8** — the minimal typed rule registry CR01 will need. Its done-when consumes both
+   0.4 and 0.7, so it cannot move earlier; it has no UI surface, so it is unaffected by the
+   design block above and runs in parallel with the Figma work. Its admin screens
+   (`/administration/regles/*`) are not part of `/travail` or `/dossiers/{id}` and land
+   later without rework.
+8. **0.5 (b) and 0.6 — blocked on screen design.** See
+   [ADR-010](01-DECISIONS.md#adr-010). **0.5 (c) — blocked on a CVD-simulation reviewer**,
+   a different dependency with its own lead time.
 
-7. **0.9, starting now and running in parallel** — classify the ~110 unknowns and begin
+9. **0.9, starting now and running in parallel** — classify the ~110 unknowns and begin
    chasing List B. It has the longest lead time in the project, nothing in Phase 3 activates
    without it, and it is the one item that cannot be accelerated by writing code faster.
 

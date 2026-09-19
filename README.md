@@ -47,7 +47,13 @@ tokens, every one single-valued and resolved to the ramp step it claims, behind 
 gate that fails `pnpm build`.
 
 Build order for Phase 0 is **0.1 → 0.2 → 0.7 → 0.3 → 0.4 → 0.5(a) → 0.6 → 0.8**, with 0.9
-running in parallel from day one. Next is **0.5(b)**, the primitives Phase 1–2 consumes.
+running in parallel from day one.
+
+**0.5(b), 0.5(c) and 0.6 are blocked, not next** — see
+[ADR-010](docs/01-DECISIONS.md#adr-010). The primitives and the staff shell wait on
+`/travail` and `/dossiers/{id}` being designed; 0.5(c) waits on a reviewer who can run
+colour-vision-deficiency simulation. **The next backend item is 0.8**, the minimal typed
+rule registry, which has no UI surface and runs in parallel with the design work.
 
 See [`docs/RUNBOOK.md`](docs/RUNBOOK.md) to run it.
 

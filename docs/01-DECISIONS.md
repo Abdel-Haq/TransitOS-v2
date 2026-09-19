@@ -18,6 +18,7 @@ Which review finding each ADR answers:
 | `follows-patterns` | ADR-006, ADR-007 |
 | `no-overengineering` | ADR-008 |
 | `boundaries-respected` | ADR-009 |
+| build order revisited after 0.5(a) | ADR-010 |
 
 Each decision is dated, has a stated rationale, and can be superseded by a later ADR.
 
@@ -347,3 +348,54 @@ The other **seven** non-negotiables in `09` §5 — #3, #4, #5, #6, #9, #10 and 
 retained and reflected in `CLAUDE.md` and `docs/03-DESIGN-FOUNDATION.md`. Six retirements,
 seven retentions, thirteen accounted for. Retirement is deliberate and recorded; it is not
 silent drift.
+
+---
+
+<a id="adr-010"></a>
+
+## ADR-010 — Screen design precedes the component library
+
+**Status:** accepted · 2026-09-19
+**Supersedes the build order of:** [ADR-001](#adr-001) for items 0.5(b) and 0.6
+
+Phase 0 was ordered `… → 0.5(a) → 0.6 → 0.8`, which puts the staff shell and the
+primitives before any screen exists. With 0.5(a) shipped — tokens, type scale, elevation,
+behind a contrast gate — the next items in that order are a component library and an
+application shell built for screens nobody has designed.
+
+**Decision.** **0.5(b) primitives and 0.6 staff shell do not start until `/travail` and
+`/dossiers/{id}` are designed in Figma.** Both are blocked on that work. `0.8` becomes the
+next backend item and runs in parallel, because the rule registry has no UI surface.
+
+**Why this order and not the plan's.** Components extracted from proven screens are the
+ones that survive. Components designed first are guesses about what screens will need, and
+the guesses accumulate: the source design file reached **190 component sets for 103
+names** — `13×` `Icône`, `2×` `Bouton` with incompatible APIs — which is what speculative
+component-building looks like after two years. That defect is recorded at
+`03-DESIGN-FOUNDATION.md` §1 and [ADR-006](#adr-006) carries the fix, and the fix is worth
+nothing if this project rebuilds the same pile from the other direction.
+
+`00-PLAN.md` §Phase 2 already says `/travail` and `/dossiers/{id}` *"are the two screens
+that decide whether this product is usable."* A primitive set that has not served either
+of them is untested against the only screens that matter.
+
+**The concrete blocker is the review-state component.** 0.6's exit condition requires it
+to render *"internal state and external state simultaneously on one row, in every status
+tone"* — six review states (`00-shared-contract.md:90`) against seven external states
+(`:94`), which are independent by design and may co-occur in any combination. That is a
+layout problem about density, truncation and scan order in a real table, with real French
+labels of real length, next to everything else a row carries. It cannot be designed in
+isolation and then discovered to be wrong once a screen exists; it has to be designed
+*in* the screen it lives in. Building it first would mean building it twice.
+
+**0.5(c) is separately blocked**, and on a different thing: it needs a qualified reviewer
+who can run Viénot–Brettel–Mollon protanopia and deuteranopia simulation over a candidate
+categorical sequence. That is not a design-file dependency and not something this project
+can resolve by writing code. It is tracked as an unassigned reviewer in the delivery
+ledger alongside the List B owners of [ADR-005](#adr-005).
+
+**Consequence.** Phase 0's backend track finishes on 0.8 and 0.9 while the design track
+runs. Nothing in Phase 1 renders before the shell exists, so the critical path now runs
+through the Figma work — which is the honest picture, and was already true before this ADR
+made it visible. If the design work stalls, the correct response is to say so, not to
+unblock 0.6 by inventing screens in code.
