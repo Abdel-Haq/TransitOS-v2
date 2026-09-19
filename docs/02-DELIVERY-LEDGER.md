@@ -36,7 +36,7 @@ hide that and stall finished work.
 | P0 | 0.4 authorization engine | — | — | planned | — | — | — |
 | P0 | 0.5a tokens, type scale, elevation | — | — | planned | — | — | ADR-006, ADR-007 |
 | P0 | 0.5b primitives consumed by Phase 1–2 | — | — | planned | — | — | — |
-| P0 | 0.5c categorical chart sequence | — | — | planned | — | — | — |
+| P0 | 0.5c categorical chart sequence | — | — | planned | — | unassigned — needs a CVD-simulation reviewer | — |
 | P0 | 0.6 staff shell + review-state component | — | — | planned | — | — | ADR-001 |
 | P0 | 0.7 approval policy modes | — | — | planned | — | — | ADR-002 |
 | P0 | 0.8 minimal typed rule registry | — | — | planned | — | — | — |
@@ -44,7 +44,8 @@ hide that and stall finished work.
 
 ## Phases 1–5 — modules
 
-Each row splits into its own slices as it is started; the policy keys below attach to the
+One row per sub-module. A row is split further into slices as it is started — replace the
+row with its slices then, rather than tracking both. The policy keys below attach to the
 slice named in the last column, not to the whole module.
 
 | module | requirement | status | blocking_policy_keys | blocks which slice |
@@ -88,6 +89,7 @@ slice named in the last column, not to the whole module.
 | DF03 | reconciliation + RED correction | planned | `policy.bom.yields`†, `policy.production.exception_treatment`† | correction proposals |
 | DF05 | knowledge index + assistant | planned | `policy.ai.destination`† | any provider call |
 | DF05 | advisory runs + recommendations | planned | `policy.assistant.schedule`† | scheduled scans |
+| PL01 | `/travail` — the cross-dossier work queue | planned | — | — |
 | PL01 | saved views + preferences | planned | — | — |
 | PL01 | offline draft sync | planned | `policy.offline.attachment_policy`† | attachment caching; in-memory drafts unblocked |
 | PL02 | public site + lead capture | planned | — | — |

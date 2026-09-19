@@ -26,7 +26,7 @@ those CRUD-and-review screens from typed DTOs. Four other things do not scale:
 
 | Constraint | Why it strains |
 |---|---|
-| **Policy resolution** | **50** `assumption to verify` markers covering ~110 enumerated values. Most need a qualified regulatory reviewer, a finance reviewer or a privacy owner. One builder is none of those, and the specs correctly refuse to let code invent the values. |
+| **Policy resolution** | **49** `assumption to verify` markers covering ~110 enumerated values. Most need a qualified regulatory reviewer, a finance reviewer or a privacy owner. One builder is none of those, and the specs correctly refuse to let code invent the values. |
 | **Separation of duty** | A submitter cannot approve their own controlled action, across ~6 reviewer capabilities. One person cannot satisfy it. [ADR-002](01-DECISIONS.md#adr-002) gives the engineering answer; it does not give a production answer. |
 | **Review capacity** | Generated code still has to be read. A module here is ~15–25 files of domain logic plus migrations plus tests. Generation is fast; verification is not. |
 | **Correctness oracle** | FIFO/LIFO allocation, BOM coverage, partial-period charge tiers and exact decimal arithmetic cannot be generated from a description. They need fixtures written by someone who knows the right answer. |
@@ -97,11 +97,11 @@ invent weeks.
 | # | Item | Size | Done when |
 |---|---|---|---|
 | 0.1 | Monorepo, toolchain, CI, test harness, Compose stack (Postgres · Keycloak · MinIO · scanner); startup configuration validation per §19 | M | `docker compose up` yields a working environment; CI runs migrations against real Postgres; invalid required config makes the process **not ready** |
-| 0.2 | `packages/contracts` — value types (`Money`, `Quantity`, `Decimal`, `ResourceRef`, `EvidenceRef`, `SnapshotRef`, `TypedValue`), French error catalog, capability registry, action registry | L | Every type in spec §20 expressed and unit-tested; OpenAPI generates |
-| 0.3 | Shared kernel schema — `ResourceRecord`, `ReviewRequest`, `ApprovalDecision`, `AuditEvent`, `Job`, `OutboxEvent`, `IdempotencyRecord` | L | The controlled-command flow runs end to end on a synthetic resource: validate → authorize → `If-Match` → lock → recheck → apply → consume approval → audit + outbox → commit |
+| 0.2 | `packages/contracts` — value types (`Money`, `Quantity`, `Decimal`, `ResourceRef`, `EvidenceRef`, `SnapshotRef`, `TypedValue`), French error catalog, capability registry, action registry | L | Every value type in `00-shared-contract.md:49–53` and spec §20 expressed and unit-tested; OpenAPI generates |
+| 0.3 | Shared kernel schema — `ResourceRecord`, `ReviewRequest`, `ApprovalDecision`, `AuditEvent`, `Job`, `OutboxEvent`, `IdempotencyRecord` | L | The controlled-command flow runs end to end on a synthetic resource: validate → authorize → `If-Match` → lock → recheck → apply → consume approval → audit + outbox → commit. `authorize` here is the 0.2 capability registry alone — 0.4 generalises it to scope, classification and module availability. `consume approval` needs 0.7's `dev_single_approver`, which therefore lands first |
 | 0.4 | Authorization engine — capability + resource scope + classification + module availability, deny by default | L | Role/resource matrix tests pass, including revoked parent grants, restricted children and aggregate leakage |
 | 0.5 | `packages/ui` design system, carried over with its defects fixed. **(a)** tokens, type scale, elevation — every token single-valued; **(b)** the primitives Phase 1–2 actually consume; **(c)** a validated categorical chart sequence | L | A contrast unit test asserts every status pair ≥ 4.5 and every control boundary ≥ 3.0 and **fails the build**; (c) verified under protanopia and deuteranopia simulation |
-| 0.6 | Staff application shell — navigation, review-state component, French locale, accessibility primitives | M | A staff screen can be assembled from primitives in an hour |
+| 0.6 | Staff application shell — navigation, review-state component, French locale, accessibility primitives | M | The review-state component renders internal state and external state simultaneously on one row, in every status tone; axe-core passes on the shell and a keyboard traversal test covers navigation, skip link and focus order |
 | 0.7 | Approval policy modes | S | `dev_single_approver` works locally and **fails the production readiness check** |
 | 0.8 | Minimal typed rule registry — `RuleDefinition`, `RuleVersion`, three-valued predicate evaluator, `PolicyRequirement`, and the `POLICY_REQUIRED` → `À confirmer` path | M | A seed policy can be entered, reviewed, activated and consumed by a calculation; an unresolved key blocks that calculation and names itself |
 | 0.9 | Policy register — classify all ~110 enumerated unknowns into List A / List B | S | `docs/04-POLICY-REGISTER.md` exists with an owner per item; List A values recorded as approved with `source: engineering_default` |
@@ -110,6 +110,9 @@ Decisions in force here: [ADR-001](01-DECISIONS.md#adr-001) ·
 [ADR-002](01-DECISIONS.md#adr-002) · [ADR-005](01-DECISIONS.md#adr-005) ·
 [ADR-006](01-DECISIONS.md#adr-006) · [ADR-007](01-DECISIONS.md#adr-007), with tokens in
 [03-DESIGN-FOUNDATION.md](03-DESIGN-FOUNDATION.md).
+
+**Item numbers are stable identifiers, not the build order.** §6 gives the order — 0.7 and
+0.4 land earlier than their numbers suggest.
 
 **Only the staff shell is built here.** The other four ship with the phase that first renders
 them: auth with FD01 (1.1), client portal with CR06 (2.4), field with CR04 (3.1), public site
@@ -206,17 +209,20 @@ blocked.
 Each activates individually, only once its own evidence and provider policy are approved.
 None is a prerequisite for shipping.
 
-| # | Module | Size | Exit evidence (spec §19) | Activation gate |
-|---|---|---|---|---|
-| 4.1 | **DF04** Rule lifecycle, qualification, impact scanning | L | New rule identifies affected records without rewriting posted history | Grows the 0.8 registry |
-| 4.2 | **DF01** Reviewed extraction, contradictions, mail routing | L | Proposed fields cite source; correction never overwrites approved data silently | Approved AI provider, region, purpose, data categories |
-| 4.3 | **DF02** Contract-aware delay exposure and scenarios | L | Same complete inputs reproduce the estimate; incomplete rates stay unavailable | Real carrier/terminal contract evidence from a customer |
-| 4.4 | **DF06** Adapters and scoped machine API | L | Contract fixture and replay tests pass; unverified provider stays disabled | Contract evidence per claimed live adapter |
-| 4.5 | **DF03** Production evidence and RED reconciliation | L | Material variance links to actual movements and reviewed RED correction | CR04 + CR07 |
-| 4.6 | **DF05** Grounded assistant, scans, recommendations | L | Every factual recommendation is grounded or marked unknown; no executing model output | Last by dependency — CR04, CR05, DF01, DF03, DF04 |
+| # | Module | Size | Exit evidence (spec §19) | Tests | Activation gate |
+|---|---|---|---|---|---|
+| 4.1 | **DF04** Rule lifecycle, qualification, impact scanning | L | New rule identifies affected records without rewriting posted history | `14-DF04-rules.md:35`† | Grows the 0.8 registry |
+| 4.2 | **DF01** Reviewed extraction, contradictions, mail routing | L | Proposed fields cite source; correction never overwrites approved data silently | `11-DF01-readiness.md:45` | Approved AI provider, region, purpose, data categories |
+| 4.3 | **DF02** Contract-aware delay exposure and scenarios | L | Same complete inputs reproduce the estimate; incomplete rates stay unavailable | `12-DF02-delay-costs.md:45` | Real carrier/terminal contract evidence from a customer |
+| 4.4 | **DF06** Adapters and scoped machine API | L | Contract fixture and replay tests pass; unverified provider stays disabled | `16-DF06-api-integrations.md:46`† | Contract evidence per claimed live adapter |
+| 4.5 | **DF03** Production evidence and RED reconciliation | L | Material variance links to actual movements and reviewed RED correction | `13-DF03-production.md:48` | CR04 + CR07 |
+| 4.6 | **DF05** Grounded assistant, scans, recommendations | L | Every factual recommendation is grounded or marked unknown; no executing model output | `15-DF05-advisory.md:48` | Last by dependency — CR04, CR05, DF01, DF03, DF04 |
 
 DF04 leads this phase because the registry is already load-bearing by the end of Phase 2.
-Each module's spec file carries its own `Tests:` line — open it alongside the ledger row.
+
+† `14-DF04-rules.md` and `16-DF06-api-integrations.md` have no `Tests:` line — their test
+lists sit inside the `Errors:` paragraph at the cited line. Every other module spec carries
+a labelled `Tests:` line; do not assume it.
 
 ---
 
@@ -280,7 +286,9 @@ behaviour, required tests, runbook. A module with unresolved production policy i
 
 `planned → in_progress → code_complete → acceptance_pending → released`, or `blocked`.
 
-Rows are **slices, not modules**. A policy key usually blocks one slice, and a module-level
+Rows are **slices, not modules** — but the ledger ships one row per sub-module and each is
+split further as it is started. CR02 is four rows and six slices; when a row is split, replace
+it with its slices rather than tracking both. A policy key usually blocks one slice, and a module-level
 row would stall finished work alongside it — CR02 is the clearest case, where only *issue*
 depends on numbering, tax and rounding.
 
@@ -293,16 +301,25 @@ coined by this project rather than found in the specs is marked in the ledger.
 
 ## 6. Starting
 
-In order. The first four are strictly sequential; 0.9 runs alongside from day one.
+In order: **0.1 → 0.2 → 0.7 → 0.3 → 0.4 → 0.5(a) → 0.6 → 0.8**, with 0.9 alongside from
+day one. The first four are strictly sequential.
 
 1. **0.1** — scaffold the monorepo, CI and Compose stack.
 2. **0.2** — write the value types and error catalog *before any table exists*. Everything
    downstream is generated from or validated against them.
-3. **0.3** — build the shared kernel and prove the controlled-command flow on a throwaway
+3. **0.7** — approval policy modes. Small, and it comes before 0.3 for a reason: 0.3's exit
+   requires a resource *independently approved*, and a solo builder cannot satisfy separation
+   of duty until `dev_single_approver` exists. See [ADR-002](01-DECISIONS.md#adr-002).
+4. **0.3** — build the shared kernel and prove the controlled-command flow on a throwaway
    resource. Until this works, no module can be built correctly.
-4. **0.5 (a)** — port the tokens with their defects fixed, with the contrast test failing the
-   build. Then **0.6**, then **0.8** — the rule registry CR01 will need.
-5. **0.9, starting now and running in parallel** — classify the ~110 unknowns and begin
+5. **0.4** — the authorization engine, before anything renders real data. 0.3 authorizes
+   against the capability registry alone; 0.4 adds scope, classification and module
+   availability, and everything after it assumes deny-by-default is real.
+6. **0.5 (a)** — port the tokens with their defects fixed, with the contrast test failing the
+   build. Then **0.6**, then **0.8** — the rule registry CR01 will need. 0.8's done-when
+   consumes both 0.4 and 0.7, so it cannot move earlier.
+
+7. **0.9, starting now and running in parallel** — classify the ~110 unknowns and begin
    chasing List B. It has the longest lead time in the project, nothing in Phase 3 activates
    without it, and it is the one item that cannot be accelerated by writing code faster.
 

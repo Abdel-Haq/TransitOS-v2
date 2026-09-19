@@ -44,9 +44,11 @@ is *for*:
 
 The break between 08 and 09 is sharp and deliberate. Do not treat a ramp as a gradient.
 
-> ⚠️ **Steps 09–10 cannot carry white text.** On the source ramps white measured 2.35–3.76
-> against step 09. Filled buttons take **step 11**. This was a documented rule in the source
-> system and it is retained.
+> ⚠️ **Steps 09–10 cannot carry white text.** On the source ramps white against step 09
+> measured `ambre/09` 2.35, `terracotta/09` 3.28, `gris/09` 3.30, `rouge/09` 3.76 — and
+> `violet/09` `#7355EB` 4.97, the one step that clears AA. One passing ramp does not make
+> step 09 safe, so filled buttons take **step 11** without exception. This was a documented
+> rule in the source system and it is retained.
 
 ### Ramps
 
@@ -227,6 +229,13 @@ alert · banner · empty state
 
 **Forms** — field (label, required marker, hint, error, `because`) · input · select ·
 textarea · checkbox/radio · fieldset · dropzone · button · bulk bar
+
+**Two constraints on all of them.** Every transition and state change has a
+`prefers-reduced-motion` path; there is no decorative motion in this product. And the KPI
+tile above is permitted only where the number is actionable and its basis is stated — no
+hero-metric dashboards, no identical icon-card grids, no illustration standing in for a
+table. Both are non-negotiables #10 and #13 of the source brief, adopted here rather than
+inherited silently; see [ADR-009](01-DECISIONS.md#adr-009).
 
 > **Build the tones Phase 1 actually consumes, not the full matrix.** A 7 tones × 3 sizes ×
 > 5 states button is 105 permutations designed before a single real screen has said which

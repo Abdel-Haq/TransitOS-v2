@@ -61,7 +61,8 @@ construction rather than by retrofit.
 `00-shared-contract.md` requires that a submitter cannot approve their own controlled
 action, across ~6 reviewer capabilities: `finance_operator` drafts an invoice and
 `finance_reviewer` issues it; `red_operator` proposes and `red_reviewer` posts; privileged
-grant changes need *"a different authorized `access_admin`"*.
+grant changes need *"a different authorized approver"* (`00-shared-contract.md:64`) who is
+*"a different `access_admin`"* (`01-FD01-identity.md:14`).
 
 Two problems. One person cannot develop against this. And at a six-person Moroccan
 *transitaire* — the stated target customer — one person genuinely holds three of those
@@ -158,10 +159,15 @@ collision.
 **Status:** accepted · 2026-09-18
 **Defect:** `no-placeholders`
 
-**50 `assumption to verify` markers** across the 22 spec files, covering roughly 110
-enumerated values. (Counted 2026-09-18. An earlier figure of 99 in this plan was a
-double-count: `dossier-clair-implementation-specifications.md` is a consolidated copy of the
-split files and contributes 49 duplicates.) The mechanism is honest and well built —
+**49 `assumption to verify` markers on actual values**, across the 21 numbered spec files,
+covering roughly 110 enumerated values. `grep -o -i` returns 99 occurrences in total: 49 in
+the numbered specs, 49 duplicates in `dossier-clair-implementation-specifications.md` (a
+consolidated copy of those same files), and 1 in `specs/README.md`, which *defines* the
+convention rather than marking a value. So: 99 raw → 50 unique → **49 on values**. The ~110
+figure is a hand count of the values named behind those 49, and moves by ±7 depending on
+whether compound phrases like *"duties/tax/valuation"* count as one unknown or three.
+(Counted 2026-09-18, recounted 2026-09-19; an earlier figure of 99 in this plan was the raw
+occurrence count.) The mechanism is honest and well built —
 `PolicyRequirement(key, scope_module, label_fr, schema, status, value?, …)` with
 `unresolved/proposed/approved/superseded` and defined fail-closed behaviour. But it mixes
 two very different kinds of unknown, and treating them alike blocks day-one work for no
@@ -301,9 +307,9 @@ product rather than a half-built one.
 **Defect:** `boundaries-respected`
 
 Review of the specs failed `boundaries-respected` on the grounds that they replace a
-documented architecture: `/home/user/cg/docs/ui-ux/02` §2 states *"Every interaction that
-changes data is a Livewire round-trip… there is no client-side store and no optimistic UI"*,
-and *"Field capture forms must stay native `<form method="POST">`"*. The specs mandate a
+documented architecture: `docs/ui-ux/02` §2 of the TransitOS repository requires
+*"real `<form method="POST">` elements"* (`:61`), and `09` §5 raises both that rule (#8) and
+*"Every data-changing interaction is a Livewire round-trip"* (#7) to non-negotiables. The specs mandate a
 separate REST API with `Idempotency-Key` and `If-Match` ETags consumed by a Next.js client —
 which does not extend that pattern, it replaces it.
 
@@ -323,6 +329,21 @@ from `09` §5 are Livewire-specific and are formally retired:
 | #8 *"Field capture forms must stay native `<form method="POST">`."* | The offline mechanism is now the draft envelope of ADR-004. The underlying requirement — that capture works when JS is degraded and is never silently lost — is carried by ADR-004 §4. |
 | #12 *"No `@tailwindcss/forms`. Form chrome comes from the `@layer base` recipe."* | A Tailwind-specific gotcha. Form chrome now comes from `packages/ui`. |
 
-The other ten non-negotiables in `09` §5 are retained and are reflected in `CLAUDE.md` and
-`docs/03-DESIGN-FOUNDATION.md`. Retirement is deliberate and recorded; it is not silent
-drift.
+**Three more are superseded by decisions taken elsewhere in this document**, and are listed
+here so this table is the single place to learn which prior rules still bind:
+
+| Superseded | By what |
+|---|---|
+| #1 *"Evolve, don't replace — the component library, the type scale and the surface recipes are unchanged."* | The library is rebuilt in code as `packages/ui`, the body step changes (#11 below), and the filled input recipe is replaced by a bordered one — both in `03-DESIGN-FOUNDATION.md` §1, rows *"190 component sets for 103 names"* and *"Input boundary at 1.22:1"*. [ADR-006](#adr-006) is the carryover contract that replaces #1. |
+| #2 *"Light content, dark chrome."* | Retired for light chrome in `03-DESIGN-FOUNDATION.md` §*Surfaces* (*"Navigation chrome is **light** — a deliberate change from the source documentation"*) and [ADR-006](#adr-006). What the convention protected — `fond/inversé` distinguishing *live estimate* from *stored record* — is kept explicitly. |
+| #11 *"12.5 px body is correct for this product."* | Body is `Corps/02` at 14 px — `03-DESIGN-FOUNDATION.md` §*Type scale* — because 11–12 px carried 52% of the source file's text nodes. The density intent is kept: floor 12 px, no marketing whitespace. |
+
+**Two were neither retained nor recorded, and are adopted now:** #10's
+`prefers-reduced-motion` clause and #13's category-reflex guard were absent from every
+document in this repository until this revision. Both are now in `CLAUDE.md` §*UI* and
+`03-DESIGN-FOUNDATION.md`.
+
+The other **seven** non-negotiables in `09` §5 — #3, #4, #5, #6, #9, #10 and #13 — are
+retained and reflected in `CLAUDE.md` and `docs/03-DESIGN-FOUNDATION.md`. Six retirements,
+seven retentions, thirteen accounted for. Retirement is deliberate and recorded; it is not
+silent drift.

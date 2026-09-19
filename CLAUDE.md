@@ -143,6 +143,13 @@ Design foundation and tokens: [`docs/03-DESIGN-FOUNDATION.md`](docs/03-DESIGN-FO
 - Charts include an accessible data table.
 - Money and identifiers in IBM Plex Mono via the `.data` treatment — it is the column
   alignment mechanism, not decoration.
+- **`prefers-reduced-motion` is respected.** Any transition, auto-scroll or animated state
+  change has a no-motion path. Decorative motion does not exist in this product.
+- **Avoid the category reflex.** No hero-metric dashboards, no identical icon-card grids, no
+  illustration where a table is the honest answer. A KPI tile is permitted only where the
+  number is actionable and its basis is stated; otherwise show the rows.
+- Which prior design rules still bind, and which were retired, is settled in
+  [ADR-009](docs/01-DECISIONS.md#adr-009) — not by reading the TransitOS documents.
 
 ## Policy keys
 
