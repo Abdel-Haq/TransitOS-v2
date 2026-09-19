@@ -34,7 +34,7 @@ hide that and stall finished work.
 | P0 | 0.3 shared kernel schema | `db/src/schema/kernel.ts`, `db/migrations/0001_shared_kernel.sql` | `kernel.integration.test.ts` | code_complete | — | — | — |
 | P0 | 0.3b controlled-command flow end to end | `db/src/kernel/execute.ts` | `kernel.integration.test.ts` | code_complete | `policy.jobs.max_attempts`† | platform operator | — |
 | P0 | 0.4 authorization engine | `packages/domain/src/access`, `db/src/kernel/access.ts` | `access.test.ts`, `access.integration.test.ts` | code_complete | `policy.identity.role_bundles`† | access reviewer | — |
-| P0 | 0.5a tokens, type scale, elevation | — | — | planned | — | — | ADR-006, ADR-007 |
+| P0 | 0.5a tokens, type scale, elevation | `packages/ui/src/tokens` | `tokens.test.ts` + build gate | code_complete | — | — | ADR-006, ADR-007 |
 | P0 | 0.5b primitives consumed by Phase 1–2 | — | — | planned | — | — | — |
 | P0 | 0.5c categorical chart sequence | — | — | planned | — | unassigned — needs a CVD-simulation reviewer | — |
 | P0 | 0.6 staff shell + review-state component | — | — | planned | — | — | ADR-001 |

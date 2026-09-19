@@ -9,9 +9,11 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    }
+    },
+    "./tokens.css": "./dist/tokens.css"
   },
   "scripts": {
-    "build": "tsc -b"
+    "build": "tsc -b && node dist/bin/check-tokens.js",
+    "check:contrast": "node dist/bin/check-tokens.js"
   }
 }

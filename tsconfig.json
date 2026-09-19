@@ -11,6 +11,9 @@
       "path": "packages/domain"
     },
     {
+      "path": "packages/ui"
+    },
+    {
       "path": "packages/adapters"
     },
     {

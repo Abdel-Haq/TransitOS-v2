@@ -353,3 +353,69 @@ name a role and a capability together — and `UNASSIGNED_CAPABILITIES` lists th
 They all deny by default, so the gap fails closed and is countable rather than papered
 over with a plausible bundle. Completing it is `policy.identity.role_bundles`†, supplied
 by the organization's access reviewer.
+
+---
+
+## Design tokens
+
+Phase 0.5(a). `packages/ui/src/tokens` is the enforcement of
+[`docs/03-DESIGN-FOUNDATION.md`](03-DESIGN-FOUNDATION.md); the document remains the prose.
+
+### Single-valued is the whole point
+
+The source design system had **17 of 22 token names resolving to more than one value** —
+the same `fond/application` was `#f0f0f3` on the dashboard and `#fcfcfd` on thirteen other
+frames — so a screen could not be built from tokens without first checking what the last
+screen did.
+
+Every semantic token here carries a `ref` (`gris/01`, `terracotta/11`, `white`), and
+`tokens.test.ts` asserts the hex still equals that ramp step. A hand-edited value cannot
+drift from its ramp without failing.
+
+### The ramps stay sparse
+
+A step is added when a use appears, not speculatively. `gris` has no `07` and `ambre` has
+no `12`, and both absences are load-bearing — `ambre/12` is exactly the step someone would
+invent to "fix" the `attention` tone, which would break the rule that produced the ramp.
+
+### The contrast gate fails the build, literally
+
+```bash
+pnpm --filter @dc/ui build      # tsc -b && node dist/bin/check-tokens.js
+```
+
+It runs in CI as its own `pnpm build` step, not under `pnpm test`: a check that only runs
+in the test job is not a build gate. It emits `packages/ui/dist/tokens.css` in the same
+pass, so the stylesheet cannot be generated from tokens that did not pass.
+
+Verified by retuning `ambre/11` one notch lighter:
+
+```
+Contrast gate failed — 1 pair(s) below threshold:
+  statut/attention
+    measured 4.00, required 4.50
+    ambre/11 on ambre/03 — a status badge carries a label, so it is text
+```
+
+**Why it exists:** `attention` clears AA by **0.03**. The source system flagged that and
+never fixed it. Any future retune of `ambre` would break a badge that still looks fine.
+
+The gate compares the **unrounded** ratio, so a pair at 4.4999 fails rather than rounding
+up to a pass. `ratio()` rounds only for display, and carries the repository's one
+documented `Math.round` exception — a contrast ratio is a dimensionless display figure,
+not money.
+
+### Steps 09–10 carry no text
+
+`verifyNonTextFillBand` asserts the rule rather than the ratios: if white on a step-09
+fill ever clears AA, someone retuned a ramp and the band definition needs revisiting
+before a button starts using it. `violet/09` at 4.97 already clears it and is excluded
+from the assertion — it is the documented exception that proves one passing ramp does not
+make the band safe. Filled buttons take **step 11** without exception.
+
+### CSS custom properties are generated
+
+French names stay authoritative in TypeScript; the CSS names are ASCII-slugged
+(`fond/inversé` → `--dc-fond-inverse`) because downstream tooling is reliably worse at
+accented custom property names than the spec says it should be. The `prefers-reduced-motion`
+default lives here too — it is a system-wide default, not a decision each component makes.

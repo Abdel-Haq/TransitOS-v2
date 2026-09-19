@@ -85,6 +85,13 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+      # The contrast gate of Phase 0.5(a) runs here, not under `pnpm test`: a token that
+      # drops a status badge below AA must fail the build, and a check that only runs in
+      # the test job is not a build gate. It also emits packages/ui/dist/tokens.css, so
+      # the stylesheet can never be generated from tokens that did not pass.
+      - name: Build (runs the contrast gate)
+        run: pnpm build
+
       - name: Migrate a real PostgreSQL
         run: pnpm db:migrate
 
