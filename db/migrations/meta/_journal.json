@@ -22,6 +22,13 @@
       "when": 1789841451584,
       "tag": "0002_identity_and_grants",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1789844454433,
+      "tag": "0003_rule_registry",
+      "breakpoints": true
     }
   ]
 }

@@ -23,4 +23,10 @@ export {
   accessiblePredicate,
   liveGrantFilter,
 } from './kernel/index.js';
+export {
+  resolvePolicy,
+  resolvePolicies,
+  policyRequiredDetails,
+  type PolicyResolution,
+} from './kernel/index.js';
 export { postProbeHandler, type PostProbeBody, type PostProbeResult } from './kernel/index.js';

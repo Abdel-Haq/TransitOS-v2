@@ -124,6 +124,26 @@ export const ERROR_CATALOG = {
     http_status: HTTP_STATUS.CONFLICT,
     retryable: true,
   },
+  // --- DF04 rule registry, `14-DF04-rules.md:35`, French copy verbatim. --------------
+  RULE_APPLICABILITY_UNKNOWN: {
+    // The three-valued evaluator's `unknown`. Not a failure and not a pass: an input the
+    // rule needs was missing, out of the module allowlist, or incomparable.
+    message_fr: "L'applicabilité de cette règle doit être confirmée.",
+    http_status: HTTP_STATUS.UNPROCESSABLE,
+    retryable: false,
+  },
+  RULE_OVERLAP: {
+    message_fr: 'Plusieurs règles actives couvrent le même cas.',
+    http_status: HTTP_STATUS.CONFLICT,
+    retryable: false,
+  },
+  REVIEWER_NOT_QUALIFIED: {
+    // `00-shared-contract.md:79` — qualification is recorded, not inferred from the role.
+    message_fr: "L'habilitation requise pour cette règle n'est pas enregistrée.",
+    http_status: HTTP_STATUS.FORBIDDEN,
+    retryable: false,
+  },
+
   NO_ELIGIBLE_APPROVER: {
     // `00-shared-contract.md:88` specifies this copy exactly, for the case where the
     // item stays pending because separation of duty cannot be satisfied.

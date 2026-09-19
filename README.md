@@ -30,7 +30,7 @@ the places where the specs are not followed as written. Every `file.md:NN` citat
 
 ## Status
 
-Phases **0.1, 0.2, 0.7, 0.3, 0.4 and 0.5(a) are code_complete**. The monorepo, toolchain, CI and Compose stack
+Phases **0.1, 0.2, 0.7, 0.3, 0.4, 0.5(a) and 0.8 are code_complete**. The monorepo, toolchain, CI and Compose stack
 are in place; the startup configuration contract of `19-security-operations-delivery.md:63`
 is implemented and tested in `packages/config`; and `packages/contracts` now holds the
 value types, the French error catalog, and the capability, role and action registries,
@@ -44,7 +44,10 @@ idempotency claim all proven under concurrency. The authorization engine enforce
 five terms of `00-shared-contract.md:64` — active user, capability, resource scope, data
 classification and module availability — deny by default. `packages/ui` holds the design
 tokens, every one single-valued and resolved to the ramp step it claims, behind a contrast
-gate that fails `pnpm build`.
+gate that fails `pnpm build`. The minimal typed rule registry is in place: rule
+definitions and versions, a three-valued predicate evaluator where `unknown` never
+collapses into `false`, and the policy register behind the `POLICY_REQUIRED` →
+`À confirmer` path.
 
 Build order for Phase 0 is **0.1 → 0.2 → 0.7 → 0.3 → 0.4 → 0.5(a) → 0.6 → 0.8**, with 0.9
 running in parallel from day one.
@@ -52,8 +55,8 @@ running in parallel from day one.
 **0.5(b), 0.5(c) and 0.6 are blocked, not next** — see
 [ADR-010](docs/01-DECISIONS.md#adr-010). The primitives and the staff shell wait on
 `/travail` and `/dossiers/{id}` being designed; 0.5(c) waits on a reviewer who can run
-colour-vision-deficiency simulation. **The next backend item is 0.8**, the minimal typed
-rule registry, which has no UI surface and runs in parallel with the design work.
+colour-vision-deficiency simulation. **0.8 is done**, so the backend track of Phase 0 finishes on **0.9**, the policy register
+classification — which is blocked on named reviewers rather than on code.
 
 See [`docs/RUNBOOK.md`](docs/RUNBOOK.md) to run it.
 

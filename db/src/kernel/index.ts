@@ -11,3 +11,9 @@ export type {
 export { claimJobs, completeJob, failJob, enqueueJob, type ClaimedJob } from './jobs.js';
 export { postProbeHandler, type PostProbeBody, type PostProbeResult } from './probe-command.js';
 export { loadSubject, loadAncestors, accessiblePredicate, liveGrantFilter } from './access.js';
+export {
+  resolvePolicy,
+  resolvePolicies,
+  policyRequiredDetails,
+  type PolicyResolution,
+} from './policy.js';

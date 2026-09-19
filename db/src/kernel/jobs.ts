@@ -80,7 +80,10 @@ export const claimJobs = async (
     id: row.id as string,
     handlerType: row.handler_type as string,
     payloadSchema: row.payload_schema as string,
-    payload: row.payload,
+    // `client.ts` hands JSON columns to drizzle as raw text, so the query builder parses
+    // them exactly once instead of twice. `db.execute` bypasses the query builder, so a
+    // raw row's JSON is still text and this is where the single parse happens.
+    payload: typeof row.payload === 'string' ? JSON.parse(row.payload) : row.payload,
     dedupeKey: row.dedupe_key as string,
     attempts: Number(row.attempts),
   }));

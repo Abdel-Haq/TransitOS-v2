@@ -140,4 +140,20 @@ export {
   type ExternalState,
 } from './states/external.js';
 
+export {
+  PREDICATE_OPERATORS,
+  fieldPathSchema,
+  predicateSchema,
+  isLeaf,
+  fieldPathsOf,
+  POLICY_STATES,
+  isUsablePolicyState,
+  policyKeySchema,
+  UNCONFIRMED_FR,
+  type Predicate,
+  type PredicateLeaf,
+  type PredicateOperator,
+  type PolicyState,
+} from './rules/index.js';
+
 export { COMPONENT_SCHEMAS, componentSchemas, type ComponentSchemaName } from './openapi.js';

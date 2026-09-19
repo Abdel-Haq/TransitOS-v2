@@ -419,3 +419,88 @@ French names stay authoritative in TypeScript; the CSS names are ASCII-slugged
 (`fond/inversé` → `--dc-fond-inverse`) because downstream tooling is reliably worse at
 accented custom property names than the spec says it should be. The `prefers-reduced-motion`
 default lives here too — it is a system-wide default, not a decision each component makes.
+
+---
+
+## The rule registry and the policy register
+
+Phase 0.8 — the **minimal** registry `14-DF04-rules.md:5` requires *"before those core
+modules for manually reviewed seed policies"*. DF04 at 4.1 grows it with source
+management, applicability screens and impact analysis; `RuleImpactRun` and
+`RuleImpactCase` are deliberately absent here.
+
+### `unknown` is a third answer, not a missing one
+
+`14-DF04-rules.md:22` — *"Evaluation is three-valued true/false/unknown… **Unknown never
+counts as eligible or not-applicable**."* A missing declaration date must not make a
+deadline rule quietly inapplicable, and a missing regime code must not make an eligibility
+rule quietly fail. Both are `unknown`, which blocks and names the field.
+
+Kleene's strong logic: `all` returns `false` if any clause is false — one definite `false`
+beats any number of unknowns, because that *is* a real answer — otherwise `unknown` if any
+is unknown. `any` mirrors it. `not` leaves `unknown` alone.
+
+There is no `toBoolean()`. `applies()` and `doesNotApply()` are both false on `unknown`,
+so a caller has to say what happens.
+
+`exists` is the one operator that resolves a missing value rather than being defeated by
+it. Without it a rule could never say *"this field must be supplied"* — the absence it
+wants to detect would make its own test unknown.
+
+### A rule is data, never code
+
+`:22` — *"Field paths come from module allowlist; no scripting/SQL/HTTP."* Field paths are
+dotted snake_case and nothing else; a path with brackets or quotes is the beginning of an
+expression language nobody asked for. A path outside the allowlist is `unknown`, not
+`false`: the rule asked about something the module does not expose, which is a
+registration problem rather than a negative answer.
+
+### Comparison never touches a float
+
+`compareDecimal` compares sign, then magnitude, then padded digits. `Number(a) - Number(b)`
+is correct for small values and quietly wrong above 2^53, which is inside the range of a
+customs declaration in centimes. Money in different currencies and Quantity in different
+units return **undefined**, not false — the question was never meaningful, and conversion
+needs an `FxRateVersion` or reviewed unit rule a predicate does not have.
+
+### Approved content is immutable at the database
+
+Two triggers, in migration `0003`. An approved or active `rule_version` cannot have its
+predicate, effect, dates, jurisdiction or interpretation edited; an approved
+`policy_requirement` cannot have its value edited. Lifecycle metadata still moves —
+`20-…:13`, *"Approved rule content is immutable even if its lifecycle metadata later
+becomes superseded."*
+
+Enforced by trigger, not by the application: the value of an approved rule version is that
+a calculation replayed years later gets exactly what was approved, and an application-level
+rule is one forgotten code path away from not holding.
+
+### Policy resolution cannot be defaulted
+
+`resolvePolicy` returns a discriminated result, never `undefined`. A resolver that returned
+`undefined` invites `?? 0` at the call site, and that is precisely how a missing tax rate
+becomes a zero tax rate.
+
+`missing` and `unresolved` are different answers: `unresolved` is a registered question
+nobody has answered; `missing` is a question the module never asked, which is a
+registration bug. `proposed` blocks too — it looks like an answer and is not one.
+
+`resolvePolicies` reports **every** blocking key, so a finance reviewer chasing an invoice
+learns about numbering, tax and rounding in one pass.
+
+### Two bugs this phase found, both worth knowing
+
+**JSON and JSONB were parsed twice.** node-postgres parses a jsonb column, then drizzle
+parses the resulting string again. A stored `"20"` came back as the number `20`, and
+`"12345678901234567890.123456789"` came back as `12345678901234567000`. Policy values are
+exactly where a tax rate or a rounding scale lives, so this destroyed exactness on the read
+path. `client.ts` now hands JSON text to drizzle unparsed, leaving one parse. Anything
+reading JSON through `db.execute` bypasses the query builder and must parse it itself —
+`claimJobs` does.
+
+**The migration snapshot chain broke silently.** `meta/0002_snapshot.json` was deleted
+during unrelated cleanup, so the next `drizzle-kit generate` diffed against `0001` and
+produced a migration recreating four existing tables. It surfaced only when run.
+`migrations.test.ts` now guards the chain: a snapshot per entry, a SQL file per entry, an
+entry per SQL file, contiguous numbering, `prevId` chaining, and every table created
+exactly once across the whole chain.

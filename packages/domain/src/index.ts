@@ -11,6 +11,7 @@ export {
   containsSelfApproval,
   SMALL_ORG_SUBSET_POLICY_KEY,
 } from './approval/evaluate.js';
+export * from './rules/index.js';
 export { decideAccess, directlyGrantedIds, hasBroadScope } from './access/decide.js';
 export type {
   AccessDecision,
