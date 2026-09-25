@@ -30,3 +30,9 @@ export {
   type PolicyResolution,
 } from './kernel/index.js';
 export { postProbeHandler, type PostProbeBody, type PostProbeResult } from './kernel/index.js';
+export {
+  seedPolicyRegister,
+  unresolvedKeys,
+  SYSTEM_ACTOR_ID,
+  type SeedResult,
+} from './seed/policy.js';

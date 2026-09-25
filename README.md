@@ -30,7 +30,8 @@ the places where the specs are not followed as written. Every `file.md:NN` citat
 
 ## Status
 
-Phases **0.1, 0.2, 0.7, 0.3, 0.4, 0.5(a) and 0.8 are code_complete**. The monorepo, toolchain, CI and Compose stack
+Phases **0.1, 0.2, 0.7, 0.3, 0.4, 0.5(a), 0.8 and 0.9 are code_complete** — the whole
+backend track of Phase 0. The monorepo, toolchain, CI and Compose stack
 are in place; the startup configuration contract of `19-security-operations-delivery.md:63`
 is implemented and tested in `packages/config`; and `packages/contracts` now holds the
 value types, the French error catalog, and the capability, role and action registries,
@@ -55,8 +56,11 @@ running in parallel from day one.
 **0.5(b), 0.5(c) and 0.6 are blocked, not next** — see
 [ADR-010](docs/01-DECISIONS.md#adr-010). The primitives and the staff shell wait on
 `/travail` and `/dossiers/{id}` being designed; 0.5(c) waits on a reviewer who can run
-colour-vision-deficiency simulation. **0.8 is done**, so the backend track of Phase 0 finishes on **0.9**, the policy register
-classification — which is blocked on named reviewers rather than on code.
+colour-vision-deficiency simulation. **The backend track is finished.** What remains is blocked on people, not code:
+`0.5(b)`, `0.5(c)` and `0.6` on design and a CVD reviewer ([ADR-010](docs/01-DECISIONS.md#adr-010)),
+and List B of the policy register on seven named roles —
+[`docs/04-POLICY-REGISTER.md`](docs/04-POLICY-REGISTER.md) is the ask, with 70 questions
+each naming what it blocks.
 
 See [`docs/RUNBOOK.md`](docs/RUNBOOK.md) to run it.
 

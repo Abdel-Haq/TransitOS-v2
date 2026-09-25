@@ -14,7 +14,9 @@
   "scripts": {
     "build": "tsc -b",
     "migrate": "tsc -b && node dist/migrate.js",
-    "generate": "drizzle-kit generate"
+    "generate": "drizzle-kit generate",
+    "seed:policy": "tsc -b && node dist/seed/run.js",
+    "doc:policy": "tsc -b && node dist/seed/generate-doc.js ../docs/04-POLICY-REGISTER.md"
   },
   "dependencies": {
     "@dc/config": "workspace:*",

@@ -40,7 +40,7 @@ hide that and stall finished work.
 | P0 | 0.6 staff shell + review-state component | — | — | **blocked** — the review-state component cannot be designed outside the screen it lives in | — | — | ADR-001, ADR-010 |
 | P0 | 0.7 approval policy modes | `packages/config/src/approval-mode.ts`, `packages/domain/src/approval` | `approval.test.ts` | code_complete | `policy.approval.small_org_subset`† | approval policy owner | ADR-002 |
 | P0 | 0.8 minimal typed rule registry | `packages/domain/src/rules`, `db/src/schema/rules.ts`, `db/src/kernel/policy.ts` | `rules.test.ts`, `rules.integration.test.ts` | code_complete | — | — | — |
-| P0 | 0.9 policy register A/B classification | — | — | planned | — | — | ADR-005 |
+| P0 | 0.9 policy register A/B classification | `packages/contracts/src/policy`, `db/src/seed` | `register.test.ts`, `seed.integration.test.ts` | code_complete — List A approved; **List B awaits 7 named reviewers** | 70 keys, see `docs/04-POLICY-REGISTER.md` | see the register | ADR-005 |
 
 ## Phases 1–5 — modules
 

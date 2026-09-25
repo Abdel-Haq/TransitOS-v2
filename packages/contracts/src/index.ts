@@ -156,4 +156,6 @@ export {
   type PolicyState,
 } from './rules/index.js';
 
+export * from './policy/index.js';
+
 export { COMPONENT_SCHEMAS, componentSchemas, type ComponentSchemaName } from './openapi.js';

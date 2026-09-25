@@ -504,3 +504,53 @@ produced a migration recreating four existing tables. It surfaced only when run.
 `migrations.test.ts` now guards the chain: a snapshot per entry, a SQL file per entry, an
 entry per SQL file, contiguous numbering, `prevId` chaining, and every table created
 exactly once across the whole chain.
+
+---
+
+## The policy register
+
+Phase 0.9. [`docs/04-POLICY-REGISTER.md`](04-POLICY-REGISTER.md) is the document;
+`packages/contracts/src/policy/register.ts` is the data it is generated from, and
+`pnpm db:seed` writes the same data into `policy_requirement`.
+
+```bash
+pnpm db:migrate && pnpm db:seed      # once per environment, after migrations
+pnpm --filter @dc/db doc:policy      # regenerate the document from the register
+```
+
+Idempotent, and it **never overwrites an approved value** — a deployment where a reviewer
+has approved something must not have it reset by a redeploy. The immutability trigger would
+refuse anyway, so the seed skips rather than fights it.
+
+### 85 entries, from 49 markers
+
+The specifications carry 49 `assumption to verify` markers. Six define the convention
+rather than naming a value; the rest were split into the discrete values behind them.
+`19-…:133` holds dates, staffing and budget out of scope deliberately.
+
+**List A — 15, approved.** Engineering-decidable, recorded with
+`source: engineering_default` and the bootstrap system actor as approver. No human approved
+them and the register says so, rather than borrowing a name. They are ordinary approved
+policy versions, so a reviewer can supersede any of them.
+
+**List B — 70, unresolved.** Each one names what it blocks, so a reviewer sees the cost of
+leaving it open rather than a schema field. Seven roles, and the count per role is in the
+document.
+
+### The mechanism, restated
+
+An unresolved key returns `POLICY_REQUIRED` and the screen shows `À confirmer`. It never
+falls back to a plausible number. `resolvePolicy` returns a discriminated result rather
+than `undefined`, because `undefined` invites `?? 0` and that is how a missing tax rate
+becomes a zero tax rate.
+
+The worker is the first consumer: it resolves `policy.jobs.max_attempts`,
+`.backoff_seconds` and `.lease_seconds` at startup and **exits 78 if any is unresolved**,
+naming the key. It used to carry provisional constants; it no longer carries any.
+
+### Adding a key
+
+Add it to `register.ts` with its `file:line` citation, its French label, the question its
+owner must answer and what it blocks. A test reads those citations off disk. If a module
+needs a value the specifications do not mark, that is a specification gap to raise, not a
+number to choose.
