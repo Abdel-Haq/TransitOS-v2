@@ -11,6 +11,7 @@ export {
   SEMANTIC,
   SEMANTIC_NAMES,
   TEXT_ON_GROUND,
+  CONTROL_GROUNDS,
   token,
   type SemanticToken,
   type SemanticTokenName,

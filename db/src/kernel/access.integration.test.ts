@@ -21,6 +21,8 @@ afterAll(async () => {
 });
 
 const NOW = '2026-09-19T12:00:00Z';
+/** Before NOW. Never let a fixture's validity window come from the column default. */
+const ROLES_VALID_FROM = '2026-01-01T00:00:00Z';
 const ENABLED = new Set(ALL_MODULES);
 const AGENT = '11111111-1111-4111-8111-111111111111';
 const CLIENT = '22222222-2222-4222-8222-222222222222';
@@ -72,6 +74,7 @@ describe('loading a subject from the database', () => {
       userId: AGENT,
       roleCode: 'dossier_agent',
       scope: 'assigned',
+      validFrom: ROLES_VALID_FROM,
       createdBy: AGENT,
     });
     await db
@@ -258,6 +261,7 @@ describe('aggregates never reveal unauthorized totals', () => {
       userId: AGENT,
       roleCode: 'dossier_agent',
       scope: 'all_operational_records',
+      validFrom: ROLES_VALID_FROM,
       createdBy: AGENT,
     });
     const { n, total } = await totalFor(AGENT);
@@ -270,6 +274,7 @@ describe('aggregates never reveal unauthorized totals', () => {
       userId: AGENT,
       roleCode: 'dossier_agent',
       scope: 'all_operational_records',
+      validFrom: ROLES_VALID_FROM,
       createdBy: AGENT,
     });
     await db.insert(resourceGrant).values({
@@ -288,6 +293,7 @@ describe('aggregates never reveal unauthorized totals', () => {
       userId: AGENT,
       roleCode: 'dossier_agent',
       scope: 'assigned',
+      validFrom: ROLES_VALID_FROM,
       createdBy: AGENT,
     });
     await db
@@ -303,6 +309,7 @@ describe('aggregates never reveal unauthorized totals', () => {
       userId: AGENT,
       roleCode: 'dossier_agent',
       scope: 'all_operational_records',
+      validFrom: ROLES_VALID_FROM,
       createdBy: AGENT,
     });
     const { total } = await totalFor(AGENT);
@@ -344,11 +351,19 @@ describe('database constraints on grants', () => {
   });
 
   it('refuses the same open-ended role at the same scope twice', async () => {
-    await db
-      .insert(roleAssignment)
-      .values({ userId: AGENT, roleCode: 'auditor', createdBy: AGENT });
+    await db.insert(roleAssignment).values({
+      userId: AGENT,
+      roleCode: 'auditor',
+      validFrom: ROLES_VALID_FROM,
+      createdBy: AGENT,
+    });
     await expect(
-      db.insert(roleAssignment).values({ userId: AGENT, roleCode: 'auditor', createdBy: AGENT }),
+      db.insert(roleAssignment).values({
+        userId: AGENT,
+        roleCode: 'auditor',
+        validFrom: ROLES_VALID_FROM,
+        createdBy: AGENT,
+      }),
     ).rejects.toThrow();
   });
 });

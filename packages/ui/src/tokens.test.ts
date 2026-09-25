@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { contrastRatio, ratio, relativeLuminance, ColourError, channels } from './contrast.js';
 import { RAMPS, WHITE } from './tokens/ramps.js';
-import { SEMANTIC, SEMANTIC_NAMES, TEXT_ON_GROUND } from './tokens/semantic.js';
+import { SEMANTIC, SEMANTIC_NAMES, TEXT_ON_GROUND, CONTROL_GROUNDS } from './tokens/semantic.js';
 import { ACCENT_CHIP, STATUS_TONES, STATUS_TONE_NAMES } from './tokens/status.js';
 import {
   TYPE_SCALE,
@@ -10,6 +10,7 @@ import {
   MINIMUM_PROSE_SIZE,
   BODY_TOKEN,
 } from './tokens/type.js';
+import { ELEVATION } from './tokens/space.js';
 import { SURFACES } from './tokens/surfaces.js';
 import { tokensToCss, cssVariableName } from './tokens/css.js';
 import { verifyContrast, verifyNonTextFillBand } from './verify-contrast.js';
@@ -148,6 +149,44 @@ describe('the contrast gate', () => {
       ['rouge', RAMPS.rouge['09']],
     ] as const) {
       expect(ratio(WHITE, step), name).toBeLessThan(4.5);
+    }
+  });
+});
+
+describe('depth — ADR-011', () => {
+  const r = (a: keyof typeof SEMANTIC, b: keyof typeof SEMANTIC) =>
+    ratio(SEMANTIC[a].value, SEMANTIC[b].value);
+
+  it('separates a card from the page it rests on', () => {
+    // The defect that produced this section: the carried-over pair was 1.03, below
+    // perceptual threshold, so a card read as the page rather than as a plane on it.
+    expect(r('fond/surface', 'fond/application')).toBeGreaterThanOrEqual(1.1);
+  });
+
+  it('keeps the control boundary above 3.0 on every ground a control can sit on', () => {
+    // A boundary is only as good as its worst adjacent surface. gris/09 measured 3.30 on
+    // white and 2.90 on the gris/03 page — checking against white alone is how the ground
+    // and the boundary drifted apart.
+    for (const ground of CONTROL_GROUNDS) {
+      expect(r('bordure/composant', ground), ground).toBeGreaterThanOrEqual(3.0);
+    }
+  });
+
+  it('gives the stroke ladder three distinguishable weights', () => {
+    const hairline = r('bordure/discrète', 'fond/surface');
+    const structural = r('bordure/structure', 'fond/surface');
+    const boundary = r('bordure/composant', 'fond/surface');
+    expect(hairline).toBeLessThan(structural);
+    expect(structural).toBeLessThan(boundary);
+    // Three strokes that look alike are one stroke used three times.
+    expect(structural / hairline).toBeGreaterThanOrEqual(1.25);
+    expect(boundary / structural).toBeGreaterThanOrEqual(1.25);
+  });
+
+  it('ships three elevation tiers, all two-layer or single-layer but never none', () => {
+    expect(Object.keys(ELEVATION)).toHaveLength(3);
+    for (const [name, shadow] of Object.entries(ELEVATION)) {
+      expect(shadow, name).toMatch(/px/);
     }
   });
 });

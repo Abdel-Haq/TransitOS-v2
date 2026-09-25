@@ -24,7 +24,10 @@ const t = (value: string, ref: string, use: string): SemanticToken => ({ value, 
 
 export const SEMANTIC = {
   // --- Grounds -----------------------------------------------------------------------
-  'fond/application': t(RAMPS.gris['01'], 'gris/01', 'page ground'),
+  // gris/03, not gris/01. The carried-over value sat 1.03 from the white card it holds —
+  // below perceptual threshold, so a card did not read as a plane, it read as the page.
+  // See [ADR-011](../../../docs/01-DECISIONS.md#adr-011).
+  'fond/application': t(RAMPS.gris['03'], 'gris/03', 'page ground'),
   'fond/surface': t(WHITE, 'white', 'cards'),
   'fond/composant': t(RAMPS.gris['04'], 'gris/04', 'inset surfaces, table stripes'),
   'fond/discret': t(RAMPS.gris['02'], 'gris/02', 'client portal and auth ground'),
@@ -44,8 +47,16 @@ export const SEMANTIC = {
   // --- Boundaries --------------------------------------------------------------------
   // The control boundary. An input must be perceivable at its edge — the source system
   // used a filled surface with no border at 1.22:1 and called it a field.
-  'bordure/composant': t(RAMPS.gris['09'], 'gris/09', 'control outlines — the boundary'),
-  'bordure/discrète': t(RAMPS.gris['06'], 'gris/06', 'decorative separators only'),
+  // The stroke ladder. One weight used everywhere is what reads as flat, whatever that
+  // weight is — depth comes from hierarchy between strokes, not from thickness.
+  //
+  // gris/10, not gris/09. A control sits on the card *or* on the page, and gris/09 is
+  // 3.30 on white but only 2.90 on the gris/03 page — under the 3.0 of WCAG 1.4.11. The
+  // boundary has to clear its threshold on every ground it can touch, which is what
+  // `verify-contrast` now checks.
+  'bordure/composant': t(RAMPS.gris['10'], 'gris/10', 'control outlines — the boundary'),
+  'bordure/structure': t(RAMPS.gris['08'], 'gris/08', 'header baselines, section dividers'),
+  'bordure/discrète': t(RAMPS.gris['06'], 'gris/06', 'hairlines inside a plane'),
 
   // --- Accent ------------------------------------------------------------------------
   'accent/aplat': t(RAMPS.terracotta['10'], 'terracotta/10', 'non-text fills'),
@@ -65,6 +76,14 @@ export const token = (name: SemanticTokenName): string => SEMANTIC[name].value;
  * surfaces it actually renders on, because checking it against `fond/inversé` would fail a
  * pairing nothing produces.
  */
+/** Grounds a control can sit on. A boundary must clear 1.4.11 against every one of them. */
+export const CONTROL_GROUNDS: readonly SemanticTokenName[] = [
+  'fond/surface',
+  'fond/application',
+  'fond/discret',
+  'fond/composant',
+];
+
 export const TEXT_ON_GROUND: readonly {
   readonly token: SemanticTokenName;
   readonly ground: SemanticTokenName;
@@ -85,6 +104,8 @@ export const TEXT_ON_GROUND: readonly {
   { token: 'icône/discrète', ground: 'fond/surface', threshold: 3.0 },
   { token: 'icône/discrète', ground: 'fond/application', threshold: 3.0 },
   { token: 'icône/discrète', ground: 'fond/composant', threshold: 3.0 },
+  // bordure/composant is checked against every control ground by `verify-contrast`;
+  // these two are listed for the specimen table.
   { token: 'bordure/composant', ground: 'fond/surface', threshold: 3.0 },
   { token: 'bordure/composant', ground: 'fond/application', threshold: 3.0 },
 ];

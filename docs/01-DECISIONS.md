@@ -19,6 +19,7 @@ Which review finding each ADR answers:
 | `no-overengineering` | ADR-008 |
 | `boundaries-respected` | ADR-009 |
 | build order revisited after 0.5(a) | ADR-010 |
+| first screen reads flat | ADR-011 |
 
 Each decision is dated, has a stated rationale, and can be superseded by a later ADR.
 
@@ -399,3 +400,61 @@ runs. Nothing in Phase 1 renders before the shell exists, so the critical path n
 through the Figma work — which is the honest picture, and was already true before this ADR
 made it visible. If the design work stalls, the correct response is to say so, not to
 unblock 0.6 by inventing screens in code.
+
+---
+
+<a id="adr-011"></a>
+
+## ADR-011 — Depth is a system, and it is spent by role
+
+**Status:** accepted · 2026-09-25
+**Amends:** [ADR-006](#adr-006) — `fond/application` is no longer carried over unchanged
+**Raised by:** the first `/travail` screen
+
+The first real screen came back flat. Measuring it rather than arguing about it gave the
+reason in one number: a white card sat **1.03** from the page ground it rested on. That is
+below perceptual threshold, so the card did not read as a plane — it read as the page. The
+row separators were **1.40**, and the three elevation tiers the system ships were not used
+at all.
+
+Every plane in the screen was within 1.03–1.40 of its neighbour, and the only tool that
+creates depth was unspent.
+
+**Decision 1 — the page ground moves down.** `fond/application` goes from `gris/01`
+`#FCFCFD` to `gris/03` `#F0F0F3`, putting a white card at **1.14** from its ground rather
+than 1.03. Modest on purpose: the separation is carried mainly by the stroke ladder below,
+and a darker page costs contrast everywhere else.
+
+**Decision 2 — the control boundary moves with it.** This is the part that would have
+shipped broken. Darkening the page drags every boundary on it down too: `gris/09` measures
+3.30 against white and only **2.90** against a `gris/03` page, under the 3.0 of WCAG
+1.4.11. So `bordure/composant` becomes `gris/10` `#80838D`, which clears on every ground a
+control can sit on — 3.78 on a card, 3.33 on the page, 3.10 on an inset.
+
+The contrast gate missed this, because it checked boundaries against white and against a
+ground that was nearly white. It now checks every boundary against **every ground a control
+can touch**, and separately asserts that a card is at least 1.1 from its page. A boundary
+is only as good as its worst adjacent surface.
+
+**Decision 3 — three strokes, spent by role.** One weight everywhere is what reads as flat,
+whatever that weight is; depth comes from hierarchy between strokes, not from thickness.
+
+| Token | Step | On a card | Role |
+|---|---|---|---|
+| `bordure/discrète` | `gris/06` | 1.40 | hairlines **inside** a plane |
+| `bordure/structure` | `gris/08` | 1.91 | header baselines, section dividers |
+| `bordure/composant` | `gris/10` | 3.78 | control outlines — the boundary |
+
+`bordure/structure` is a new token. The system's rule is that a step is added when a use
+appears, not speculatively, and the use appeared: a table header needs to separate from its
+body without another hairline. The gate asserts the structural stroke stays at least 25%
+above the hairline, so the ladder cannot quietly collapse back into one weight.
+
+**Consequence.** Either depth mechanism works — elevation, or a committed stroke ladder.
+What cannot work is the combination the first screen had: weak strokes *and* no elevation.
+`03-DESIGN-FOUNDATION.md` §*Depth* now says which to spend where, and §*Density* covers the
+three composition failures the same screen exposed — a shallow type hierarchy, uniform row
+rhythm, and urgency encoded only in colour.
+
+None of this is the component library. These are foundation decisions, so they are not
+blocked by [ADR-010](#adr-010); they are the constraints the screens are designed against.

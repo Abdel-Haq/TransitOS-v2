@@ -1,6 +1,6 @@
 import { contrastRatio, NON_TEXT, ratio } from './contrast.js';
 import { RAMPS, WHITE } from './tokens/ramps.js';
-import { SEMANTIC, TEXT_ON_GROUND } from './tokens/semantic.js';
+import { CONTROL_GROUNDS, SEMANTIC, TEXT_ON_GROUND } from './tokens/semantic.js';
 import { ACCENT_CHIP, STATUS_TONES, STATUS_TONE_NAMES } from './tokens/status.js';
 
 /**
@@ -64,16 +64,51 @@ export function verifyContrast(): ContrastViolation[] {
     );
   }
 
-  // The control boundary of WCAG 1.4.11, stated as its own check because it is the
-  // defect this design system was carried over to fix: the source shipped a filled
-  // field with no border at 1.22:1.
-  check(
-    'bordure/composant on fond/surface (WCAG 1.4.11)',
-    SEMANTIC['bordure/composant'].value,
-    SEMANTIC['fond/surface'].value,
-    NON_TEXT,
-    'an input must be perceivable at its edge',
-  );
+  // The control boundary of WCAG 1.4.11, against **every ground a control can sit on**.
+  //
+  // Checking it against white alone is how the ground and the boundary drifted apart:
+  // gris/09 measures 3.30 on white and 2.90 on a gris/03 page, so darkening the page
+  // silently pushed every filter chip and input on it under threshold. A boundary is only
+  // as good as its worst adjacent surface.
+  for (const ground of CONTROL_GROUNDS) {
+    check(
+      `bordure/composant on ${ground} (WCAG 1.4.11)`,
+      SEMANTIC['bordure/composant'].value,
+      SEMANTIC[ground].value,
+      NON_TEXT,
+      'an input must be perceivable at its edge, on whichever surface it sits',
+    );
+  }
+
+  // The structural stroke is a divider, not a control boundary, so 1.4.11 does not apply
+  // to it — but it must stay distinguishable from the hairline, or the ladder collapses
+  // back into the one-weight-everywhere flatness it exists to prevent.
+  const hairline = ratio(SEMANTIC['bordure/discrète'].value, SEMANTIC['fond/surface'].value);
+  const structural = ratio(SEMANTIC['bordure/structure'].value, SEMANTIC['fond/surface'].value);
+  if (structural / hairline < 1.25) {
+    violations.push({
+      pair: 'bordure/structure against bordure/discrète',
+      measured: structural,
+      required: hairline * 1.25,
+      detail:
+        'the structural stroke is too close to the hairline to read as a different weight; ' +
+        'three strokes that look alike are one stroke used three times',
+    });
+  }
+
+  // A card must read as a plane sitting on the page. Below roughly 1.1 it does not — the
+  // carried-over pair was 1.03, which is the flatness this ladder exists to fix.
+  const cardOnPage = ratio(SEMANTIC['fond/surface'].value, SEMANTIC['fond/application'].value);
+  if (cardOnPage < 1.1) {
+    violations.push({
+      pair: 'fond/surface on fond/application',
+      measured: cardOnPage,
+      required: 1.1,
+      detail:
+        'a card this close to its page ground does not read as a separate plane; either ' +
+        'separate them by value or commit to the stroke ladder and say so in the document',
+    });
+  }
 
   return violations;
 }

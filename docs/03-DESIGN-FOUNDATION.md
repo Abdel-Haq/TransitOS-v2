@@ -70,7 +70,7 @@ not speculatively.
 ### Semantic tokens
 
 ```
-fond/application      gris/01   #FCFCFD    page ground
+fond/application      gris/03   #F0F0F3    page ground — 1.14 under a white card
 fond/surface          white     #FFFFFF    cards
 fond/composant        gris/04   #E8E8EC    inset surfaces, table stripes
 fond/discret          gris/02   #F9F9FB
@@ -78,13 +78,14 @@ fond/inversé          gris/12   #1C2024    primary action, projection panels
 fond/terrain          gris-chaud/03 #ECE8E3
 fond/terrain-inversé  marine/11 #172542
 
-texte/fort            gris/12   #1C2024    16.39 on white · 15.98 on gris/01
+texte/fort            gris/12   #1C2024    16.39 on a card · 14.41 on the page
 texte/faible          gris/11   #60646C     5.94 on white
 texte/inversé         white     #FFFFFF
 icône/forte           gris/12   #1C2024
-icône/discrète        gris/10   #80838D     3.78 white · 3.33 gris/03 · 3.10 gris/04
-bordure/composant     gris/09   #8B8D98     3.30 on white — the control boundary
-bordure/discrète      gris/06   #D9D9E0     decorative separators only
+icône/discrète        gris/10   #80838D     3.78 card · 3.33 page · 3.10 inset
+bordure/composant     gris/10   #80838D     3.78 card · 3.33 page · 3.10 inset — the boundary
+bordure/structure     gris/08   #B9BBC6     1.91 — header baselines, section dividers
+bordure/discrète      gris/06   #D9D9E0     1.40 — hairlines inside a plane
 accent/aplat          terracotta/10 #C8501F non-text fills
 accent/texte          terracotta/11 #AD4318  5.84 on white
 ```
@@ -192,6 +193,103 @@ Three elevation tiers, all two-layer:
 
 The source documentation insisted on "no shadow"; the file shipped all three and they read
 well. The file was right.
+
+---
+
+## 4b. Depth
+
+Added after the first `/travail` screen came back flat —
+[ADR-011](01-DECISIONS.md#adr-011). The reason was one number: a white card sat **1.03**
+from the page ground beneath it, below perceptual threshold, so the card read as the page
+rather than as a plane on it. Every separator was 1.40, and the three elevation tiers above
+were unused.
+
+**Two mechanisms, and you must spend one.** Weak strokes *and* no elevation is the only
+combination that cannot work.
+
+### The stroke ladder
+
+One weight everywhere is what reads as flat, whatever that weight is. Depth comes from
+hierarchy between strokes, not from thickness.
+
+| Token | On a card | Spend it on |
+|---|---|---|
+| `bordure/discrète` | 1.40 | hairlines **inside** a plane — between rows, between fields |
+| `bordure/structure` | 1.91 | the baseline under a table header, a section divider |
+| `bordure/composant` | 3.78 | control outlines, and only those |
+
+**Stroke the plane, not its contents.** A table card takes `bordure/composant` on its own
+edge and `bordure/structure` under its header; its rows take `bordure/discrète`, or no
+stroke at all with `fond/composant` striping doing the work instead. Four nested boxes each
+outlined at the same weight is what makes a screen look like a spreadsheet.
+
+The contrast gate asserts the structural stroke stays at least 25% above the hairline, so
+the ladder cannot quietly collapse back into one weight.
+
+### Elevation
+
+| Tier | Spend it on |
+|---|---|
+| `Élévation/01 · surface` | Any card resting on `fond/application`. The default. |
+| `Élévation/app · tuile` | A dashboard tile that is a destination, not a container. |
+| `Élévation/terrain · carte` | Field cards only — outdoors, stronger ambient light. |
+
+Anything that floats **above** the page rather than resting on it — a menu, a popover, a
+sheet — takes `Élévation/app · tuile` and a `bordure/discrète` edge, never a stronger
+stroke: a floating surface already reads as separate and a heavy outline makes it look
+pinned.
+
+> A boundary is only as good as its worst adjacent surface. `gris/09` measures 3.30 on
+> white and **2.90** on the `gris/03` page, under WCAG 1.4.11 — which is why the boundary
+> is `gris/10`, and why the gate now checks every boundary against every ground a control
+> can sit on rather than against white alone.
+
+---
+
+## 4c. Density and rhythm
+
+The same screen exposed three composition failures that no token can fix. They are rules,
+and they are cheap now and expensive after twenty-five screens exist.
+
+### The identifier never outweighs the subject
+
+A row carries a reference, a subject and its context, and they must sit at least two steps
+apart or the eye has nowhere to land first:
+
+| Role | Token | In a `/travail` row |
+|---|---|---|
+| Subject | `Corps/02-accent` · `texte/fort` | `Déclaration — révision 3` |
+| Identifier | `Donnée/01` · `texte/faible` | `DOS-2026-00184` |
+| Context | `Corps/01` · `texte/faible` | `Import · Maritime` |
+
+The reference is how a row is *found*, not what it *is*. Setting it at the same size and
+weight as the subject makes every row read as two headlines.
+
+### Urgency is encoded in form, not only in colour
+
+`CLAUDE.md` §UI already forbids colour alone. The failure mode is subtler than a missing
+label: when `Rejeté par l'organisme` and `Transmis` have identical weight, size and row
+height, colour is doing all the work even though both carry text.
+
+- The **status badge has two sizes.** The emphatic size is reserved for a state that
+  requires action from the person reading the screen; everything else takes the default.
+  A screen where every badge is emphatic has no emphasis.
+- A row that needs action **today** may carry a `trait/accent` (2 px) stripe on its leading
+  edge in the tone's ink. At most one such treatment per screen state — the point is that
+  it is rare.
+
+### Uniform row height means no row can matter more
+
+A table where every row is the same height has surrendered its ability to rank. Let a row
+grow to fit what it carries — a blocker, a second line of context, a policy value pending
+confirmation — and let the quiet rows stay short. Do not pad the quiet ones to match.
+
+### Breathing room is not the same as whitespace
+
+The space scale tops out at `08` (24 px) on purpose. Density is the point in a product read
+for hours; what makes a dense screen legible is *consistent* rhythm, not more of it. Two
+adjacent groups separated by `espace/06` and `espace/05` read as a mistake; the same two at
+`espace/06` twice read as a system.
 
 ---
 

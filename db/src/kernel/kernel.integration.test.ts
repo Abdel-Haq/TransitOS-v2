@@ -100,6 +100,8 @@ const request = (targetId: string, over: Partial<CommandRequest<PostProbeBody>> 
 
 const ENABLED = new Set(ALL_MODULES);
 const NOW = '2026-09-19T12:00:00Z';
+/** Before NOW, so a fixture's validity window never depends on the day the suite runs. */
+const ROLES_VALID_FROM = '2026-01-01T00:00:00Z';
 
 const run = (
   req: CommandRequest<PostProbeBody>,
@@ -121,17 +123,23 @@ beforeEach(async () => {
     { id: BOB, subject: 'bob', displayName: 'Bob', audience: 'staff' },
     { id: NOBODY, subject: 'nobody', displayName: 'Nobody', audience: 'staff' },
   ]);
+  // `valid_from` is set explicitly, never left to the column default. The fixtures once
+  // relied on `defaultNow()` while the tests pinned NOW to a fixed instant; they passed
+  // for six days and then every seeded role started in the future. A test that depends on
+  // the wall clock is a test that fails on a date nobody chose.
   await db.insert(roleAssignment).values([
     {
       userId: ALICE,
       roleCode: 'finance_reviewer',
       scope: 'all_operational_records',
+      validFrom: ROLES_VALID_FROM,
       createdBy: ALICE,
     },
     {
       userId: BOB,
       roleCode: 'finance_reviewer',
       scope: 'all_operational_records',
+      validFrom: ROLES_VALID_FROM,
       createdBy: ALICE,
     },
   ]);
